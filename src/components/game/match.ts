@@ -39,3 +39,8 @@ export function useMatch() {
 // Pancadas recebidas de outros jogadores (aplicadas pelo Player local)
 export type Hit = { from: string; x: number; z: number; power: number; dash: number };
 export const hitQueue: Hit[] = [];
+
+// Envio pela rede (preenchido pelo Multiplayer quando o canal existe)
+export const net: { hit: (m: import("@/hooks/useGameChannel").HitMsg) => void } = {
+  hit: () => {},
+};

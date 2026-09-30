@@ -5,6 +5,7 @@ import { useKeyboard } from "@/hooks/useKeyboard";
 import { playerId, type NetState } from "@/hooks/useGameChannel";
 import { Sumo, colorForId } from "../Sumo";
 import { sfx } from "./sfx";
+import { hitQueue, match, net } from "./match";
 import {
   ACCEL,
   ARENA_R,
@@ -24,6 +25,7 @@ export type LocalState = {
   dash: number;
   out: number;
   falls: number;
+  dead: number;
 };
 
 const tmp = new THREE.Vector3();
@@ -54,27 +56,31 @@ export function Player({
   const falling = useRef(false);
   const vy = useRef(0);
   const spin = useRef(0);
-  // física boba extra
-  const hopY = useRef(0); // pulinho sobre o ringue
+  const hopY = useRef(0);
   const hopV = useRef(0);
-  const squash = useRef(1); // mola de gelatina
+  const squash = useRef(1);
   const squashV = useRef(0);
   const tiltX = useRef(0);
   const tiltZ = useRef(0);
   const hitCd = useRef(new Map<string, number>());
+  const stunned = useRef(0);
   const stepT = useRef(0);
   const shake = useRef(0);
+  const lastSeq = useRef(-1);
 
-  const respawn = () => {
-    const ang = Math.random() * Math.PI * 2;
-    pos.current.set(Math.cos(ang) * (ARENA_R - 3.5), 6, Math.sin(ang) * (ARENA_R - 3.5));
+  const respawn = (ang = Math.random() * Math.PI * 2, drop = 6) => {
+    pos.current.set(Math.cos(ang) * (ARENA_R - 3.5), drop, Math.sin(ang) * (ARENA_R - 3.5));
+    yaw.current = Math.atan2(-pos.current.x, -pos.current.z);
     vel.current.set(0, 0, 0);
     vy.current = 0;
     spin.current = 0;
-    hopY.current = 6;
+    tiltX.current = 0;
+    tiltZ.current = 0;
+    hopY.current = drop;
     hopV.current = 0;
     falling.current = false;
     localRef.current.out = 0;
+    localRef.current.dead = 0;
     sfx.pop();
   };
 
@@ -87,16 +93,53 @@ export function Player({
     const k = keys.current;
     const group = playerRef.current;
     if (!group) return;
+    const m = match.get();
+
+    // nova rodada: todo mundo volta pro ringue
+    if (m.seq !== lastSeq.current) {
+      lastSeq.current = m.seq;
+      if (m.phase === "countdown") {
+        const ids = [playerId, ...remote.current.keys()].sort();
+        const i = ids.indexOf(playerId);
+        respawn((i / Math.max(2, ids.length)) * Math.PI * 2, 4);
+      }
+    }
+    const frozen = m.phase === "countdown";
 
     cooldown.current = Math.max(0, cooldown.current - dt);
     dashTimer.current = Math.max(0, dashTimer.current - dt);
+    stunned.current = Math.max(0, stunned.current - dt);
     localRef.current.dash = dashTimer.current > 0 ? 1 : 0;
     for (const [id, t] of hitCd.current) {
       if (t - dt <= 0) hitCd.current.delete(id);
       else hitCd.current.set(id, t - dt);
     }
 
+    if (localRef.current.dead) {
+      group.visible = false;
+      hitQueue.length = 0;
+      camTarget.set(0, 13, 16);
+      camera.position.lerp(camTarget, 1 - Math.exp(-3 * dt));
+      camera.lookAt(0, 0, 0);
+      return;
+    }
+    group.visible = true;
+
     if (!falling.current) {
+      // pancadas recebidas de outros jogadores
+      while (hitQueue.length) {
+        const h = hitQueue.shift()!;
+        vel.current.x += h.x * h.power;
+        vel.current.z += h.z * h.power;
+        hopV.current = h.dash ? 8 : 4;
+        spin.current = (Math.random() - 0.5) * (h.dash ? 20 : 8);
+        stunned.current = h.dash ? 0.45 : 0.2;
+        kick(h.dash ? 10 : 6);
+        shake.current = h.dash ? 0.7 : 0.3;
+        sfx.boing(h.dash ? 1.2 : 0.9);
+        if (h.dash) sfx.smack();
+      }
+
       const ix =
         (k.has("KeyD") || k.has("ArrowRight") ? 1 : 0) -
         (k.has("KeyA") || k.has("ArrowLeft") ? 1 : 0);
@@ -105,23 +148,22 @@ export function Player({
         (k.has("KeyW") || k.has("ArrowUp") ? 1 : 0);
 
       const grounded = hopY.current <= 0.001;
-      const control = grounded ? 1 : 0.35; // no ar controla pouco — escorrega!
-      if (ix || iz) {
+      const control = frozen ? 0 : stunned.current > 0 ? 0.15 : grounded ? 1 : 0.35;
+      if ((ix || iz) && !frozen) {
         tmp.set(ix, 0, iz).normalize();
         vel.current.addScaledVector(tmp, ACCEL * control * dt);
-        yaw.current = Math.atan2(tmp.x, tmp.z);
+        if (stunned.current === 0) yaw.current = Math.atan2(tmp.x, tmp.z);
         if (grounded) {
           stepT.current += dt;
           if (stepT.current > 0.18) {
             stepT.current = 0;
             sfx.step();
-            hopV.current = 2.2; // passinho saltitante
+            hopV.current = 2.2;
           }
         }
       }
 
-      // dash / esbarrão
-      if (k.has("Space") && cooldown.current === 0) {
+      if (!frozen && k.has("Space") && cooldown.current === 0 && stunned.current === 0) {
         cooldown.current = DASH_COOLDOWN;
         dashTimer.current = DASH_TIME;
         tmp.set(Math.sin(yaw.current), 0, Math.cos(yaw.current));
@@ -130,47 +172,43 @@ export function Player({
         sfx.whoosh();
       }
 
-      // colisão com impulso (uma pancada por contato)
+      // colisão: EU empurro o outro mandando a pancada pra ele
       for (const s of remote.current.values()) {
-        if (s.out) continue;
+        if (s.out || s.dead) continue;
         tmp.set(pos.current.x - s.x, 0, pos.current.z - s.z);
         const d = tmp.length();
-        const minD = PLAYER_R * 2 + 0.25;
+        const minD = PLAYER_R * 2 + 0.3;
         if (d > 0.001 && d < minD) {
-          tmp.divideScalar(d);
+          tmp.divideScalar(d); // aponta do outro para mim
           pos.current.addScaledVector(tmp, (minD - d) * 0.5);
-          // velocidade de aproximação
-          const closing = -vel.current.dot(tmp);
-          if (!hitCd.current.has(s.id)) {
-            hitCd.current.set(s.id, 0.25);
-            const iAmDashing = dashTimer.current > 0;
-            let impulse = PUSH * 0.6 + Math.max(0, closing) * 0.4;
-            if (s.dash) impulse = DASH_PUSH * 0.75;
-            if (iAmDashing && !s.dash) impulse *= 0.35; // quem ataca leva menos
-            // tira a velocidade que entra e aplica o tranco
-            if (closing > 0) vel.current.addScaledVector(tmp, closing * 0.8);
-            vel.current.addScaledVector(tmp, impulse);
-            hopV.current = s.dash ? 7 : 3.5;
-            spin.current = (Math.random() - 0.5) * (s.dash ? 18 : 6);
-            kick(s.dash ? 9 : 5);
-            shake.current = s.dash ? 0.6 : 0.25;
-            if (s.dash || iAmDashing) sfx.smack();
-            sfx.boing(s.dash ? 1.2 : 0.8);
-          } else {
-            vel.current.addScaledVector(tmp, PUSH * dt * 2);
+          if (!hitCd.current.has(s.id) && !frozen) {
+            hitCd.current.set(s.id, 0.35);
+            const closing = Math.max(0, -vel.current.dot(tmp));
+            const dashing = dashTimer.current > 0;
+            const power = dashing ? DASH_PUSH : Math.max(PUSH * 0.7, closing * 1.6);
+            net.hit({ to: s.id, from: playerId, x: -tmp.x, z: -tmp.z, power, dash: dashing ? 1 : 0 });
+            // coice leve pra mim
+            if (closing > 0) vel.current.addScaledVector(tmp, closing * 0.7);
+            vel.current.addScaledVector(tmp, dashing ? 2 : 4);
+            if (dashing) {
+              dashTimer.current = 0;
+              sfx.smack();
+              shake.current = 0.35;
+            }
+            kick(4);
+            sfx.boing(0.7);
           }
         }
       }
 
-      const damp = Math.exp(-(grounded ? DRAG : 0.8) * dt);
+      const damp = Math.exp(-(grounded && stunned.current === 0 ? DRAG : 0.9) * dt);
       vel.current.multiplyScalar(dashTimer.current > 0 ? Math.exp(-0.6 * dt) : damp);
       const speed = vel.current.length();
-      const cap = dashTimer.current > 0 ? DASH_SPEED : hitCd.current.size ? DASH_SPEED * 1.4 : MAX_SPEED;
+      const cap = dashTimer.current > 0 || stunned.current > 0 ? DASH_PUSH : MAX_SPEED;
       if (speed > cap) vel.current.multiplyScalar(cap / speed);
 
       pos.current.addScaledVector(vel.current, dt);
 
-      // pulinho
       hopV.current += GRAVITY * dt;
       hopY.current += hopV.current * dt;
       if (hopY.current <= 0) {
@@ -183,7 +221,6 @@ export function Player({
       }
       pos.current.y = hopY.current;
 
-      // cambaleio na borda
       const r = Math.hypot(pos.current.x, pos.current.z);
       const edge = THREE.MathUtils.clamp((r - (ARENA_R - 1.6)) / 1.4, 0, 1);
 
@@ -195,7 +232,6 @@ export function Player({
         sfx.scream();
       }
 
-      // inclina na direção da velocidade (+ tremedeira na beirada)
       const wob = edge * Math.sin(state.clock.elapsedTime * 22) * 0.35;
       const tx = THREE.MathUtils.clamp(vel.current.z * 0.05, -0.5, 0.5) + wob;
       const tz = THREE.MathUtils.clamp(-vel.current.x * 0.05, -0.5, 0.5) + wob;
@@ -213,11 +249,16 @@ export function Player({
         localRef.current.falls += 1;
         onFall();
         sfx.splat();
+        if (match.get().phase === "fight") {
+          localRef.current.dead = 1; // eliminado até a próxima rodada
+          pos.current.set(0, -40, 0);
+          group.position.copy(pos.current);
+          return;
+        }
         respawn();
       }
     }
 
-    // mola de gelatina
     const stiff = 180;
     squashV.current += (-(squash.current - 1) * stiff - squashV.current * 9) * dt;
     squash.current += squashV.current * dt;
@@ -229,7 +270,6 @@ export function Player({
     group.rotation.set(tiltX.current, yaw.current, tiltZ.current, "YXZ");
     group.scale.set(sxz, sy, sxz);
 
-    // camera: fixed angle, gently drifting toward the action
     camTarget.set(pos.current.x * 0.35, 11, pos.current.z * 0.35 + 14.5);
     camera.position.lerp(camTarget, 1 - Math.exp(-3 * dt));
     shake.current = Math.max(0, shake.current - dt * 1.5);
