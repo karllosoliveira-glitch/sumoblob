@@ -68,6 +68,9 @@ function throttle(key: string, ms: number) {
 }
 
 export const sfx = {
+  fanfare() {
+    fanfareNotes();
+  },
   boing(strength = 1) {
     if (!throttle("boing", 120)) return;
     const p = 0.85 + Math.random() * 0.3;
@@ -101,5 +104,80 @@ export const sfx = {
   step() {
     if (!throttle("step", 90)) return;
     tone("sine", 90 + Math.random() * 30, 50, 0.07, 0.12);
+  },
+};
+
+// ---------- fanfarra + musiquinha de fundo ----------
+function fanfareNotes() {
+  const n = [523, 659, 784, 1047];
+  n.forEach((f, i) => tone("square", f, f, 0.18, 0.12, i * 0.12));
+  tone("square", 1047, 1047, 0.5, 0.12, 0.5);
+}
+
+let musicGain: GainNode | null = null;
+let musicTimer: number | null = null;
+let musicOn = false;
+
+// melodia boba estilo circo/chiptune (semitons a partir de C5, null = pausa)
+const MELODY = [0, 4, 7, 4, 9, 7, 4, null, 2, 5, 9, 5, 7, 5, 2, null, 0, 4, 7, 12, 11, 7, 9, 11, 12, null, 7, null, 4, 2, 0, null];
+const BASS = [-12, -5, -12, -5, -7, -3, -7, -3, -10, -5, -10, -5, -5, -1, -5, -8];
+
+function note(semi: number, t: number, dur: number, type: OscillatorType, vol: number) {
+  const c = ctx!;
+  const o = c.createOscillator();
+  const g = c.createGain();
+  o.type = type;
+  o.frequency.value = 523.25 * Math.pow(2, semi / 12);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g).connect(musicGain!);
+  o.start(t);
+  o.stop(t + dur + 0.02);
+}
+
+export const music = {
+  get on() {
+    return musicOn;
+  },
+  start() {
+    const c = ac();
+    if (!c || !master || musicOn) return;
+    musicOn = true;
+    if (!musicGain) {
+      musicGain = c.createGain();
+      musicGain.gain.value = 0.18;
+      musicGain.connect(master);
+    }
+    const step = 60 / 150 / 2; // colcheias a 150 bpm
+    let i = 0;
+    let next = c.currentTime + 0.1;
+    const schedule = () => {
+      while (next < c.currentTime + 0.3) {
+        const m = MELODY[i % MELODY.length] ?? null;
+        if (m !== null) note(m, next, step * 0.9, "square", 0.22);
+        if (i % 2 === 0) note(BASS[(i / 2) % BASS.length] ?? 0, next, step * 1.6, "triangle", 0.5);
+        if (i % 4 === 2) {
+          // "tchic" da caixa
+          const buf = c.createBuffer(1, 2000, c.sampleRate);
+          const d = buf.getChannelData(0);
+          for (let j = 0; j < d.length; j++) d[j] = (Math.random() * 2 - 1) * (1 - j / d.length);
+          const s = c.createBufferSource();
+          const g = c.createGain();
+          g.gain.value = 0.25;
+          s.buffer = buf;
+          s.connect(g).connect(musicGain!);
+          s.start(next);
+        }
+        next += step;
+        i++;
+      }
+    };
+    schedule();
+    musicTimer = window.setInterval(schedule, 100);
+  },
+  stop() {
+    musicOn = false;
+    if (musicTimer) window.clearInterval(musicTimer);
+    musicTimer = null;
   },
 };

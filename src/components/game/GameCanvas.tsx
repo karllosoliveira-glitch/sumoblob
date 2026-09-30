@@ -20,7 +20,7 @@ export function GameCanvas({
   onScores: (scores: Record<string, number>) => void;
 }) {
   const playerRef = useRef<THREE.Group>(null);
-  const localRef = useRef<LocalState>({ dash: 0, out: 0, falls: 0 });
+  const localRef = useRef<LocalState>({ dash: 0, out: 0, falls: 0, dead: 0 });
   const remote = useRef(new Map<string, NetState>());
 
   return (
