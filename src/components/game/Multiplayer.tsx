@@ -43,10 +43,13 @@ export function Multiplayer({
     },
     onState: (s) => {
       if (!roster.current.has(s.id)) return;
+      const prev = remote.current.get(s.id);
       remote.current.set(s.id, s);
-      onScores(
-        Object.fromEntries([...remote.current.values()].map((r) => [r.id, r.falls])),
-      );
+      if (!prev || prev.falls !== s.falls) {
+        onScores(
+          Object.fromEntries([...remote.current.values()].map((r) => [r.id, r.falls])),
+        );
+      }
     },
   });
 
