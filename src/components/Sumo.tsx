@@ -54,6 +54,7 @@ export function Sumo({ color, seed = 0 }: Props) {
   });
 
   return (
+    <group scale={1.4}>
     <group ref={body}>
       {/* belly */}
       <mesh castShadow position={[0, 0.55, 0]}>
@@ -119,6 +120,7 @@ export function Sumo({ color, seed = 0 }: Props) {
         <sphereGeometry args={[0.1, 12, 10]} />
         <meshStandardMaterial color="#6d1f2a" />
       </mesh>
+    </group>
     </group>
   );
 }

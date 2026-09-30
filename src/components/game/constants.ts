@@ -1,5 +1,5 @@
 export const ARENA_R = 9;
-export const PLAYER_R = 0.62;
+export const PLAYER_R = 0.88;
 
 export const ACCEL = 34;
 export const DRAG = 3.2;

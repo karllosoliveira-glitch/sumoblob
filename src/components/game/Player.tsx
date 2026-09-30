@@ -142,9 +142,9 @@ export function Player({
     group.scale.set(2 - stretch, stretch, 2 - stretch);
 
     // camera: fixed angle, gently drifting toward the action
-    camTarget.set(pos.current.x * 0.35, 13, pos.current.z * 0.35 + 17);
+    camTarget.set(pos.current.x * 0.35, 11, pos.current.z * 0.35 + 14.5);
     camera.position.lerp(camTarget, 1 - Math.exp(-3 * dt));
-    camera.lookAt(pos.current.x * 0.3, 1, pos.current.z * 0.3);
+    camera.lookAt(pos.current.x * 0.3, 1.4, pos.current.z * 0.3);
   });
 
   return (

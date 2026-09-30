@@ -101,7 +101,7 @@ export function Arena() {
       </mesh>
 
       {[0, 1.4, 2.8, 4.2].map((a) => (
-        <Balloon key={a} angle={a} radius={ARENA_R + 3} />
+        <Balloon key={a} angle={a} radius={ARENA_R + 7} />
       ))}
     </group>
   );

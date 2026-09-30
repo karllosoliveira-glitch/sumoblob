@@ -113,7 +113,7 @@ export function Multiplayer({
         >
           <Sumo color={colorForId(id)} seed={i * 1.7 + 1} />
           <Text
-            position={[0, 2, 0]}
+            position={[0, 2.5, 0]}
             fontSize={0.42}
             color="#ffffff"
             outlineWidth={0.05}

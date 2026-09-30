@@ -24,7 +24,7 @@ export function GameCanvas({
   const remote = useRef(new Map<string, NetState>());
 
   return (
-    <Canvas shadows camera={{ position: [0, 13, 17], fov: 55 }} dpr={[1, 2]}>
+    <Canvas shadows camera={{ position: [0, 11, 14.5], fov: 55 }} dpr={[1, 2]}>
       <color attach="background" args={["#8fd3f4"]} />
       <fog attach="fog" args={["#8fd3f4", 45, 110]} />
       <ambientLight intensity={0.55} />
