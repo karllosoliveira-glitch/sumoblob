@@ -118,7 +118,7 @@ export function Multiplayer({
       const leaders = Object.keys(m.points).filter((id) => m.points[id] === best);
       const decided = best >= Math.ceil(ROUNDS / 2) + 0 && best > ROUNDS / 2;
       if (m.round >= ROUNDS || decided) {
-        go({ phase: "final", winner: leaders.length === 1 ? leaders[0] : null });
+        go({ phase: "final", winner: leaders.length === 1 ? (leaders[0] ?? null) : null });
       } else {
         go({ phase: "countdown", round: m.round + 1, winner: null });
       }

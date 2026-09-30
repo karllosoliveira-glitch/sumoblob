@@ -67,7 +67,10 @@ function throttle(key: string, ms: number) {
   return true;
 }
 
-export const sfx: Record<string, (s?: number) => void> & { boing: (s?: number) => void } = {
+export const sfx = {
+  fanfare() {
+    fanfareNotes();
+  },
   boing(strength = 1) {
     if (!throttle("boing", 120)) return;
     const p = 0.85 + Math.random() * 0.3;
@@ -110,7 +113,6 @@ function fanfareNotes() {
   n.forEach((f, i) => tone("square", f, f, 0.18, 0.12, i * 0.12));
   tone("square", 1047, 1047, 0.5, 0.12, 0.5);
 }
-sfx.fanfare = fanfareNotes;
 
 let musicGain: GainNode | null = null;
 let musicTimer: number | null = null;
@@ -151,9 +153,9 @@ export const music = {
     let next = c.currentTime + 0.1;
     const schedule = () => {
       while (next < c.currentTime + 0.3) {
-        const m = MELODY[i % MELODY.length];
+        const m = MELODY[i % MELODY.length] ?? null;
         if (m !== null) note(m, next, step * 0.9, "square", 0.22);
-        if (i % 2 === 0) note(BASS[(i / 2) % BASS.length], next, step * 1.6, "triangle", 0.5);
+        if (i % 2 === 0) note(BASS[(i / 2) % BASS.length] ?? 0, next, step * 1.6, "triangle", 0.5);
         if (i % 4 === 2) {
           // "tchic" da caixa
           const buf = c.createBuffer(1, 2000, c.sampleRate);
