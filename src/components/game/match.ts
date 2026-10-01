@@ -1,18 +1,17 @@
 import { useSyncExternalStore } from "react";
 
-// Estado da partida. Quem manda é o "anfitrião" = menor id da sala.
 export type Phase = "lobby" | "vote" | "countdown" | "fight" | "roundEnd" | "final";
-export type Mode = "sumo" | "futebol";
+export type Mode = "sumo" | "futebol" | "corrida";
 
 export type MatchState = {
   phase: Phase;
   mode: Mode;
   round: number;
-  phaseAt: number; // Date.now() em que a fase começou
-  winner: string | null; // id do vencedor (sumô) ou "A"/"B" (futebol)
+  phaseAt: number;
+  winner: string | null;
   points: Record<string, number>;
   votes: Record<string, Mode>;
-  seq: number; // muda a cada nova fase
+  seq: number;
 };
 
 export const ROUNDS = 3;
@@ -25,6 +24,7 @@ export const FINAL_MS = 7000;
 export const MODES: Record<Mode, { label: string; emoji: string; hint: string }> = {
   sumo: { label: "Sumô", emoji: "🥋", hint: "Último de pé ganha a rodada" },
   futebol: { label: "Futebol de sabão", emoji: "⚽", hint: "Empurre a bola pro gol do outro time · 3 gols vence" },
+  corrida: { label: "Corrida Maluca", emoji: "🏁", hint: "Desvie dos obstáculos e seja o primeiro a cruzar a chegada!" },
 };
 
 export const TEAMS = {
@@ -65,16 +65,13 @@ export function useMatch() {
   return useSyncExternalStore(match.subscribe, match.get, match.get);
 }
 
-// Pancadas recebidas de outros jogadores (aplicadas pelo Player local)
 export type Hit = { from: string; x: number; z: number; power: number; dash: number };
 export const hitQueue: Hit[] = [];
 
-// Bola do futebol (o anfitrião simula, os outros recebem)
 export type BallMsg = { x: number; z: number; vx: number; vz: number };
 export const ball = { x: 0, z: 0, vx: 0, vz: 0 };
 export const ballNet = { x: 0, z: 0, vx: 0, vz: 0, at: 0, fresh: false };
 
-// Envio pela rede (preenchido pelo Multiplayer quando o canal existe)
 export const net: {
   hit: (m: import("@/hooks/useGameChannel").HitMsg) => void;
   vote: (mode: Mode) => void;
