@@ -15,6 +15,8 @@ export type NetState = {
   falls: number;
   out: number; // 1 while falling off / respawning
   dead?: number; // 1 = eliminado nesta rodada
+  tackle?: number; // 1 durante o carrinho
+  kick?: number; // 1 durante o chute
 };
 
 export type HitMsg = { to: string; from: string; x: number; z: number; power: number; dash: number };

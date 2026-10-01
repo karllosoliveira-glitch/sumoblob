@@ -105,6 +105,33 @@ export const sfx = {
     if (!throttle("step", 90)) return;
     tone("sine", 90 + Math.random() * 30, 50, 0.07, 0.12);
   },
+  /** apito de juiz: dois trinados agudos */
+  whistle(long = false) {
+    const d = long ? 0.7 : 0.22;
+    tone("sine", 2900, 3100, d, 0.18);
+    tone("square", 2950, 3000, d, 0.04);
+    if (!long) { tone("sine", 2900, 3100, 0.35, 0.18, 0.28); tone("square", 2950, 3000, 0.35, 0.04, 0.28); }
+  },
+  /** torcida: ruído largo que sobe e desce */
+  crowd(strength = 1) {
+    if (!throttle("crowd", 600)) return;
+    noise(1.8 * strength, 0.35 * strength, 700, 0.4, 1400);
+    noise(1.4 * strength, 0.25 * strength, 1500, 0.6, 900);
+  },
+  kick() {
+    if (!throttle("kick", 90)) return;
+    tone("sine", 160, 45, 0.16, 0.5);
+    noise(0.06, 0.6, 2400, 1);
+  },
+  checkpoint() {
+    tone("triangle", 660, 660, 0.1, 0.25);
+    tone("triangle", 990, 990, 0.16, 0.25, 0.1);
+  },
+  slip() {
+    if (!throttle("slip", 400)) return;
+    tone("sine", 1200, 300, 0.45, 0.18);
+    noise(0.3, 0.25, 3000, 1.5, 800);
+  },
 };
 
 // ---------- fanfarra + musiquinha de fundo ----------
