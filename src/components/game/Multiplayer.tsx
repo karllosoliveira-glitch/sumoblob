@@ -180,8 +180,8 @@ export function Multiplayer({
       }
     } else if (cur.phase === "roundEnd" && elapsed > ROUND_END_MS) {
       if (cur.mode === "futebol") {
-        const a = cur.points.A ?? 0;
-        const b = cur.points.B ?? 0;
+        const a = cur.points["A"] ?? 0;
+        const b = cur.points["B"] ?? 0;
         if (a >= GOALS_TO_WIN || b >= GOALS_TO_WIN) {
           go({ phase: "final", winner: a > b ? "A" : b > a ? "B" : null });
         } else {

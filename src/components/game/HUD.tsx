@@ -62,7 +62,7 @@ export function HUD({
   }
   if (m.phase === "fight" && now - m.phaseAt < 900) banner = { big: soccer ? "BOLA ROLANDO!" : "EMPURRA!" };
   if (m.phase === "roundEnd" && soccer)
-    banner = { big: `GOOOL do ${teamName(m.winner)}!`, small: `${m.points.A ?? 0} × ${m.points.B ?? 0}` };
+    banner = { big: `GOOOL do ${teamName(m.winner)}!`, small: `${m.points["A"] ?? 0} × ${m.points["B"] ?? 0}` };
   else if (m.phase === "roundEnd")
     banner = { big: m.winner ? `${nameOf(m.winner)} venceu!` : "Empate!", small: `Rodada ${m.round} de ${ROUNDS}` };
   if (m.phase === "final")
@@ -104,9 +104,9 @@ export function HUD({
           </div>
           {soccer && (
             <div className="mb-2 flex items-center justify-center gap-3 font-display text-3xl">
-              <span style={{ color: TEAMS.A.color }} className="drop-shadow">{m.points.A ?? 0}</span>
+              <span style={{ color: TEAMS.A.color }} className="drop-shadow">{m.points["A"] ?? 0}</span>
               <span className="text-muted-foreground">×</span>
-              <span style={{ color: TEAMS.B.color }} className="drop-shadow">{m.points.B ?? 0}</span>
+              <span style={{ color: TEAMS.B.color }} className="drop-shadow">{m.points["B"] ?? 0}</span>
             </div>
           )}
           <ul className="space-y-1">
