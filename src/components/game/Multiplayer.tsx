@@ -1,11 +1,11 @@
 import { useFrame } from "@react-three/fiber";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { Text } from "@react-three/drei";
 import { playerId, useGameChannel, type NetState } from "@/hooks/useGameChannel";
 import { Sumo, colorForId } from "../Sumo";
 import type { LocalState } from "./Player";
-import { COUNTDOWN_MS, FINAL_MS, GOALS_TO_WIN, ROUND_END_MS, ROUNDS, TEAMS, VOTE_MS, ballNet, hitQueue, match, net, teamOf, useMatch, type MatchState, type Mode } from "./match";
+import { COUNTDOWN_MS, FINAL_MS, GOALS_TO_WIN, ROUND_END_MS, ROUNDS, TEAMS, VOTE_MS, ballNet, fx, hitQueue, lobby, match, net, SOCCER_MS, teamOf, useMatch, type MatchState, type Mode } from "./match";
 import { RACE_X_FINISH } from "./constants";
 import { sfx } from "./sfx";
 
@@ -21,9 +21,19 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
   const lastMatchSend = useRef(0);
   const pendingGoal = useRef<"A" | "B" | null>(null);
   const votesDirty = useRef(false);
-  const last = useRef({ x: 0, y: 0, z: 0, ry: 0, dash: 0, out: 0, falls: 0, dead: 0, at: -1 });
+  const last = useRef({ x: 0, y: 0, z: 0, ry: 0, dash: 0, out: 0, falls: 0, dead: 0, tackle: 0, kick: 0, at: -1 });
   const m = useMatch();
   const allIds = [playerId, ...ids];
+
+  // Efeitos de transição de fase, iguais em todas as telas (inclusive a do anfitrião).
+  useEffect(() => {
+    if (m.mode === "futebol") {
+      if (m.phase === "fight") sfx.whistle();
+      if (m.phase === "roundEnd" && m.winner) { fx.goalAt = performance.now(); fx.goalTeam = m.winner as "A" | "B"; fx.shake = 0.9; sfx.crowd(1.2); }
+      if (m.phase === "final") { sfx.whistle(true); sfx.crowd(1); }
+    } else if (m.phase === "fight" && m.mode === "corrida") sfx.whistle();
+    if (m.phase === "final" || (m.phase === "roundEnd" && m.mode !== "futebol")) fx.goalAt = performance.now();
+  }, [m.seq]);
 
   const applyMatch = (next: MatchState) => {
     const cur = match.get();
@@ -86,6 +96,8 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     if (n < 2) {
       if (cur.phase !== "lobby") go({ phase: "lobby", round: 0, winner: null, points: {}, votes: {} });
     } else if (cur.phase === "lobby") {
+      if (!lobby.startRequested) return sendMatch(now, null);
+      lobby.startRequested = false;
       go({ phase: "vote", round: 0, winner: null, points: {}, votes: {} });
     } else if (cur.phase === "vote") {
       const votes = Object.entries(cur.votes).filter(([id]) => all.includes(id));
@@ -95,7 +107,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
         const best = Math.max(count.sumo, count.futebol, count.corrida);
         const tied = (Object.keys(count) as Mode[]).filter((mode) => count[mode] === best);
         const mode = tied[Math.floor(Math.random() * tied.length)] ?? "sumo";
-        go({ phase: "countdown", mode, round: 1, winner: null, points: {} });
+        go({ phase: "countdown", mode, round: 1, winner: null, points: {}, startedAt: now + COUNTDOWN_MS });
       }
     } else if (cur.phase === "countdown" && elapsed > COUNTDOWN_MS) {
       pendingGoal.current = null;
@@ -104,7 +116,9 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
       const alive = all.filter((id) => id === playerId ? !localRef.current.dead : !remote.current.get(id)?.dead);
       if (alive.length <= 1) { const w = alive[0] ?? null; const points = { ...cur.points }; if (w) points[w] = (points[w] ?? 0) + 1; go({ phase: "roundEnd", winner: w, points }); }
     } else if (cur.phase === "fight" && cur.mode === "futebol") {
-      if (pendingGoal.current) { const t = pendingGoal.current; pendingGoal.current = null; const points = { ...cur.points, [t]: (cur.points[t] ?? 0) + 1 }; go({ phase: "roundEnd", winner: t, points }); }
+      const a = cur.points["A"] ?? 0, b = cur.points["B"] ?? 0;
+      if (cur.startedAt && now - cur.startedAt > SOCCER_MS) go({ phase: "final", winner: a > b ? "A" : b > a ? "B" : null });
+      else if (pendingGoal.current) { const t = pendingGoal.current; pendingGoal.current = null; const points = { ...cur.points, [t]: (cur.points[t] ?? 0) + 1 }; go({ phase: "roundEnd", winner: t, points }); }
     } else if (cur.phase === "fight" && cur.mode === "corrida") {
       const finishers = all.filter((id) => id === playerId ? (playerRef.current?.position.x ?? -999) >= RACE_X_FINISH : (remote.current.get(id)?.x ?? -999) >= RACE_X_FINISH);
       if (finishers.length) {
@@ -127,8 +141,12 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
       go({ phase: "vote", round: 0, winner: null, points: {}, votes: {} });
     }
 
+    sendMatch(now, next);
+  };
+
+  const sendMatch = (now: number, next: MatchState | null) => {
     const channel = channelRef.current;
-    if (next) match.set(next as MatchState);
+    if (next) match.set(next);
     if (channel && (next || votesDirty.current || now - lastMatchSend.current > 1000)) { votesDirty.current = false; lastMatchSend.current = now; channel.send({ type: "broadcast", event: "match", payload: match.get() }); }
   };
 
@@ -155,13 +173,13 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     const mesh = playerRef.current, channel = channelRef.current;
     if (!mesh || !channel || document.hidden) return;
     const x = Math.round(mesh.position.x * 100) / 100, y = Math.round(mesh.position.y * 100) / 100, z = Math.round(mesh.position.z * 100) / 100, ry = Math.round(mesh.rotation.y * 100) / 100;
-    const { dash, out, falls, dead } = localRef.current;
+    const { dash, out, falls, dead, tackle, kick } = localRef.current;
     const l = last.current;
-    const moved = Math.abs(x - l.x) + Math.abs(y - l.y) + Math.abs(z - l.z) + Math.abs(ry - l.ry) > 0.01 || dash !== l.dash || out !== l.out || dead !== l.dead || falls !== l.falls;
+    const moved = Math.abs(x - l.x) + Math.abs(y - l.y) + Math.abs(z - l.z) + Math.abs(ry - l.ry) > 0.01 || dash !== l.dash || out !== l.out || dead !== l.dead || falls !== l.falls || tackle !== l.tackle || kick !== l.kick;
     const stale = clock.elapsedTime - l.at > 1;
     if (!moved && !stale) return;
-    last.current = { x, y, z, ry, dash, out, falls, dead, at: clock.elapsedTime };
-    channel.send({ type: "broadcast", event: "state", payload: { id: playerId, name, x, y, z, ry, dash, out, falls, dead } satisfies NetState });
+    last.current = { x, y, z, ry, dash, out, falls, dead, tackle, kick, at: clock.elapsedTime };
+    channel.send({ type: "broadcast", event: "state", payload: { id: playerId, name, x, y, z, ry, dash, out, falls, dead, tackle, kick, vx: Math.round(localRef.current.vx * 10) / 10, vz: Math.round(localRef.current.vz * 10) / 10 } satisfies NetState });
   });
 
   return <>{ids.map((id, i) => <group key={id} visible={false} ref={(g) => { if (g) meshes.current.set(id, g); else meshes.current.delete(id); }}><Sumo key={m.mode} color={m.mode === "futebol" ? TEAMS[teamOf(id, allIds)].color : colorForId(id)} seed={i * 1.7 + 1} /><Text position={[0, 2.5, 0]} fontSize={0.42} color="#ffffff" outlineWidth={0.05} outlineColor="#2b2119" anchorX="center">{remote.current.get(id)?.name ?? "jogador"}</Text></group>)}</>;

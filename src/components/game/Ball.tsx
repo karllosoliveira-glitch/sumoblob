@@ -4,7 +4,8 @@ import * as THREE from "three";
 import type { NetState } from "@/hooks/useGameChannel";
 import type { LocalState } from "./Player";
 import { BALL_BOUNCE, BALL_MAX_SPEED, BALL_R, BALL_ROLL_DRAG, FIELD_X, FIELD_Z, GOAL_HALF, KICK_POWER, KICK_SPIN, PLAYER_R } from "./constants";
-import { ball, ballNet, match, net } from "./match";
+import { ball, ballNet, hitQueue, match, net } from "./match";
+import { playerId } from "@/hooks/useGameChannel";
 import { sfx } from "./sfx";
 
 function ballTexture() {
@@ -30,13 +31,22 @@ export function Ball({ playerRef, localRef, remote }: { playerRef: React.RefObje
       const bodies: { id: string; x: number; z: number; vx: number; vz: number; dash: number; tackle: number; kick: number }[] = [];
       const me = playerRef.current;
       if (me && !localRef.current.dead) bodies.push({ id: "me", x: me.position.x, z: me.position.z, vx: localRef.current.vx, vz: localRef.current.vz, dash: localRef.current.dash, tackle: localRef.current.tackle, kick: localRef.current.kick });
-      for (const s of remote.current.values()) if (!s.out && !s.dead) bodies.push({ id: s.id, x: s.x, z: s.z, vx: (s.vx??0), vz: (s.vz??0), dash: s.dash, tackle: 0, kick: 0 });
+      for (const s of remote.current.values()) if (!s.out && !s.dead) bodies.push({ id: s.id, x: s.x, z: s.z, vx: (s.vx??0), vz: (s.vz??0), dash: s.dash, tackle: s.tackle ?? 0, kick: s.kick ?? 0 });
 
       if (m.phase === "fight") for (const b of bodies) {
         const dx = ball.x - b.x, dz = ball.z - b.z, d = Math.hypot(dx, dz), minD = BALL_R + PLAYER_R;
         if (d <= 0.001 || d >= minD) continue;
         const nx = dx / d, nz = dz / d;
         ball.x += nx * (minD - d) * 0.92; ball.z += nz * (minD - d) * 0.92;
+        // Bolada: bola rápida vindo na direção do blob empurra ele (antes de trocar a velocidade).
+        const relIn = -(ball.vx * nx + ball.vz * nz) + (b.vx * nx + b.vz * nz);
+        if (relIn > 9 && !hitCd.current.has("bolada" + b.id)) {
+          hitCd.current.set("bolada" + b.id, 0.4);
+          const power = Math.min(22, relIn * 0.9);
+          if (b.id === "me") hitQueue.push({ from: "ball", x: -nx, z: -nz, power, dash: relIn > 16 ? 1 : 0 });
+          else net.hit({ to: b.id, from: playerId, x: -nx, z: -nz, power, dash: relIn > 16 ? 1 : 0 });
+          sfx.smack();
+        }
         const closing = b.vx * nx + b.vz * nz;
         const movingIntoBall = Math.max(0, closing);
         const tackling = b.tackle > 0 || b.dash > 0;
@@ -54,7 +64,9 @@ export function Ball({ playerRef, localRef, remote }: { playerRef: React.RefObje
             vy.current = kicking ? 5.2 : 2.2;
             spin.current += (-nz * b.vx + nx * b.vz) * KICK_SPIN;
             lastKick.current = 0.16;
-            if (kicking) sfx.smack(); else sfx.whoosh();
+            if (kicking) sfx.kick(); else sfx.whoosh();
+            // Carrinho rouba: a bola sai na direção do carrinho, não de onde veio.
+            if (tackling && !kicking) { const sp = Math.hypot(b.vx, b.vz) || 1; ball.vx = (b.vx / sp) * 16; ball.vz = (b.vz / sp) * 16; }
           } else sfx.boing(0.45);
         }
       }

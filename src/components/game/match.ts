@@ -12,6 +12,8 @@ export type MatchState = {
   points: Record<string, number>;
   votes: Record<string, Mode>;
   seq: number;
+  /** quando a partida (não a rodada) começou — cronômetro do futebol */
+  startedAt?: number;
 };
 
 export const ROUNDS = 3;
@@ -87,3 +89,9 @@ export const net: {
   isHost: true,
   ids: [],
 };
+
+/** Efeitos locais (não sincronizados): momentos de gol, apito etc. */
+export const fx = { goalAt: 0, goalTeam: "A" as "A" | "B", shake: 0 };
+export const SOCCER_MS = 180_000;
+/** Pedido do anfitrião para sair do lobby e começar. */
+export const lobby = { startRequested: false };
