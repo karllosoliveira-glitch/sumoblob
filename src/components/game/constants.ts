@@ -11,13 +11,21 @@ export const DASH_TIME = 0.28;
 export const DASH_COOLDOWN = 1.1;
 export const GRAVITY = -26;
 
-// futebol de sabão
+// futebol de sabão — física propositalmente exagerada e cartunesca
 export const FIELD_X = 12;
 export const FIELD_Z = 7.5;
 export const GOAL_HALF = 2.4;
 export const BALL_R = 1.1;
 export const SOAP_DRAG = 0.9;
 export const SOAP_ACCEL = 22;
+export const SOCCER_MAX_SPEED = 11;
+export const BALL_MAX_SPEED = 32;
+export const BALL_BOUNCE = 0.88;
+export const BALL_ROLL_DRAG = 0.24;
+export const KICK_POWER = 13;
+export const KICK_COOLDOWN = 0.48;
+export const KICK_LIFT = 4.8;
+export const KICK_SPIN = 0.16;
 
 // corrida maluca
 export const RACE_X_MIN = -8.5;
