@@ -16,12 +16,12 @@ export function GameCanvas({ roomCode, name, onFall, onRoster, onScores }: { roo
   const { mode, phase } = useMatch();
   const soccer = mode === "futebol" && phase !== "lobby" && phase !== "vote";
 
-  return <div className="relative h-full w-full touch-none overflow-hidden overscroll-none">
+  return <div className="relative h-full w-full touch-none overflow-hidden overscroll-none" style={{ WebkitTapHighlightColor: "transparent", paddingBottom: "env(safe-area-inset-bottom)" }}>
     <Canvas shadows dpr={[1, 1.5]} gl={{ antialias: true, powerPreference: "high-performance" }} camera={{ position: [0, 11, 14.5], fov: 55 }}>
       <color attach="background" args={["#8fd3f4"]} /><fog attach="fog" args={["#8fd3f4", 45, 110]} />
       <ambientLight intensity={0.55} /><directionalLight position={[9, 16, 8]} intensity={1.8} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} shadow-camera-left={-18} shadow-camera-right={18} shadow-camera-top={18} shadow-camera-bottom={-18} />
       <Suspense fallback={null}><Arena /><Player playerRef={playerRef} localRef={localRef} remote={remote} onFall={onFall} /><Ball playerRef={playerRef} localRef={localRef} remote={remote} /><Multiplayer roomCode={roomCode} name={name} playerRef={playerRef} localRef={localRef} remote={remote} onRoster={onRoster} onScores={onScores} /></Suspense>
     </Canvas>
-    {soccer && <MobileControls soccer />}
+    <MobileControls soccer={soccer} />
   </div>;
 }
