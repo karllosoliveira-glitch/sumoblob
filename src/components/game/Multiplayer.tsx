@@ -114,7 +114,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
       }
     } else if (cur.phase === "roundEnd" && elapsed > ROUND_END_MS) {
       if (cur.mode === "futebol") {
-        const a = cur.points.A ?? 0, b = cur.points.B ?? 0;
+        const a = cur.points["A"] ?? 0, b = cur.points["B"] ?? 0;
         if (a >= GOALS_TO_WIN || b >= GOALS_TO_WIN) go({ phase: "final", winner: a > b ? "A" : b > a ? "B" : null });
         else go({ phase: "countdown", round: cur.round + 1, winner: null });
       } else {

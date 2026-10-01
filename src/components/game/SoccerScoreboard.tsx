@@ -5,8 +5,8 @@ export function SoccerScoreboard() {
   const m = useMatch();
   const soccer = m.mode === "futebol" && m.phase !== "lobby" && m.phase !== "vote";
   const [flash, setFlash] = useState(false);
-  const [oldA, setOldA] = useState(m.points.A ?? 0);
-  const [oldB, setOldB] = useState(m.points.B ?? 0);
+  const [oldA, setOldA] = useState(m.points["A"] ?? 0);
+  const [oldB, setOldB] = useState(m.points["B"] ?? 0);
   useEffect(() => {
     const a = m.points.A ?? 0, b = m.points.B ?? 0;
     if (a !== oldA || b !== oldB) { setFlash(true); const t = setTimeout(() => setFlash(false), 850); setOldA(a); setOldB(b); return () => clearTimeout(t); }
