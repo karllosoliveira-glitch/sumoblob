@@ -17,7 +17,6 @@ export type MatchState = {
 
 export const ROUNDS = 3;
 export const GOALS_TO_WIN = 3;
-export const FOOT_TIME_MS = 120000;
 export const VOTE_MS = 8000;
 export const COUNTDOWN_MS = 3000;
 export const ROUND_END_MS = 3500;

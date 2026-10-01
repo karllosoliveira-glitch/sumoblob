@@ -8,7 +8,6 @@ import type { LocalState } from "./Player";
 import {
   COUNTDOWN_MS,
   FINAL_MS,
-  FOOT_TIME_MS,
   GOALS_TO_WIN,
   ROUND_END_MS,
   ROUNDS,
@@ -183,8 +182,7 @@ export function Multiplayer({
       if (cur.mode === "futebol") {
         const a = cur.points.A ?? 0;
         const b = cur.points.B ?? 0;
-        const totalTime = now - (cur.points.__start ?? now);
-        if (a >= GOALS_TO_WIN || b >= GOALS_TO_WIN || totalTime > FOOT_TIME_MS) {
+        if (a >= GOALS_TO_WIN || b >= GOALS_TO_WIN) {
           go({ phase: "final", winner: a > b ? "A" : b > a ? "B" : null });
         } else {
           go({ phase: "countdown", round: cur.round + 1, winner: null });
