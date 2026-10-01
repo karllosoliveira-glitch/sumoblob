@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { colorForId } from "../Sumo";
-import { COUNTDOWN_MS, ROUNDS, useMatch } from "./match";
+import { COUNTDOWN_MS, GOALS_TO_WIN, MODES, ROUNDS, TEAMS, VOTE_MS, net, teamOf, useMatch, type Mode } from "./match";
 import { music } from "./sfx";
 
 type Row = { id: string; name: string; falls: number };
@@ -47,19 +47,30 @@ export function HUD({
     id ? (rows.find((r) => r.id === id)?.name ?? "alguém") : null;
   const sorted = [...rows].sort((a, b) => (m.points[b.id] ?? 0) - (m.points[a.id] ?? 0));
 
+  const soccer = m.mode === "futebol" && m.phase !== "lobby" && m.phase !== "vote";
+  const teamName = (t: string | null) => (t === "A" || t === "B" ? `time ${TEAMS[t].name}` : null);
+  const ids = rows.map((r) => r.id);
+  const myVote = m.votes[meId];
+  const voteCount = (mode: Mode) => Object.values(m.votes).filter((v) => v === mode).length;
+
   let banner: { big: string; small?: string } | null = null;
   if (m.phase === "lobby") banner = { big: "Esperando amigos…", small: "Mande o link! Treine enquanto isso." };
   if (m.phase === "countdown") {
     const left = Math.ceil((COUNTDOWN_MS - (now - m.phaseAt)) / 1000);
-    banner = left > 0 ? { big: String(left), small: `Rodada ${m.round} de ${ROUNDS}` } : { big: "EMPURRA!" };
+    const sub = soccer ? `${MODES.futebol.emoji} Você é do time ${TEAMS[teamOf(meId, ids)].name}` : `Rodada ${m.round} de ${ROUNDS}`;
+    banner = left > 0 ? { big: String(left), small: sub } : { big: soccer ? "BOLA ROLANDO!" : "EMPURRA!" };
   }
-  if (m.phase === "fight" && now - m.phaseAt < 900) banner = { big: "EMPURRA!" };
-  if (m.phase === "roundEnd")
+  if (m.phase === "fight" && now - m.phaseAt < 900) banner = { big: soccer ? "BOLA ROLANDO!" : "EMPURRA!" };
+  if (m.phase === "roundEnd" && soccer)
+    banner = { big: `GOOOL do ${teamName(m.winner)}!`, small: `${m.points["A"] ?? 0} × ${m.points["B"] ?? 0}` };
+  else if (m.phase === "roundEnd")
     banner = { big: m.winner ? `${nameOf(m.winner)} venceu!` : "Empate!", small: `Rodada ${m.round} de ${ROUNDS}` };
   if (m.phase === "final")
     banner = {
-      big: m.winner ? `🏆 ${nameOf(m.winner)} é o CAMPEÃO!` : "Empate geral!",
-      small: "Nova partida já já…",
+      big: soccer
+        ? m.winner ? `🏆 ${teamName(m.winner)} venceu!` : "Empate!"
+        : m.winner ? `🏆 ${nameOf(m.winner)} é o CAMPEÃO!` : "Empate geral!",
+      small: "Votação do próximo modo já já…",
     };
 
   return (
@@ -88,23 +99,32 @@ export function HUD({
           <div className="mb-2 flex items-baseline justify-between">
             <p className="font-display text-lg text-foreground">Placar</p>
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              {m.round > 0 ? `rodada ${m.round}/${ROUNDS}` : "treino"}
+              {soccer ? `até ${GOALS_TO_WIN} gols` : m.round > 0 ? `rodada ${m.round}/${ROUNDS}` : "treino"}
             </p>
           </div>
+          {soccer && (
+            <div className="mb-2 flex items-center justify-center gap-3 font-display text-3xl">
+              <span style={{ color: TEAMS.A.color }} className="drop-shadow">{m.points["A"] ?? 0}</span>
+              <span className="text-muted-foreground">×</span>
+              <span style={{ color: TEAMS.B.color }} className="drop-shadow">{m.points["B"] ?? 0}</span>
+            </div>
+          )}
           <ul className="space-y-1">
             {sorted.map((r) => (
               <li key={r.id} className="flex items-center gap-2 text-sm font-bold">
                 <span
                   className="inline-block size-3 rounded-full border-2 border-ink"
-                  style={{ backgroundColor: colorForId(r.id) }}
+                  style={{ backgroundColor: soccer ? TEAMS[teamOf(r.id, ids)].color : colorForId(r.id) }}
                 />
                 <span className={r.id === meId ? "text-primary" : "text-foreground"}>
                   {r.name}
                   {r.id === meId ? " (você)" : ""}
                 </span>
-                <span className="ml-auto font-display text-lg tabular-nums text-foreground">
-                  {m.points[r.id] ?? 0}
-                </span>
+                {!soccer && (
+                  <span className="ml-auto font-display text-lg tabular-nums text-foreground">
+                    {m.points[r.id] ?? 0}
+                  </span>
+                )}
                 <span className="w-8 text-right text-xs tabular-nums text-muted-foreground" title="tombos">
                   💥{r.falls}
                 </span>
@@ -114,7 +134,33 @@ export function HUD({
         </div>
       </div>
 
-      {banner && (
+      {m.phase === "vote" && (
+        <div className="pointer-events-auto absolute inset-x-0 top-1/4 flex flex-col items-center gap-3 text-center">
+          <div className="rounded-3xl border-4 border-ink bg-primary px-6 py-3 font-display text-4xl text-primary-foreground shadow-chunky">
+            Vote no modo! {Math.max(0, Math.ceil((VOTE_MS - (now - m.phaseAt)) / 1000))}
+          </div>
+          <div className="flex flex-wrap justify-center gap-4">
+            {(Object.keys(MODES) as Mode[]).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => net.vote(mode)}
+                className={`w-52 rounded-3xl border-4 border-ink px-4 py-4 shadow-chunky transition-transform hover:-translate-y-1 ${
+                  myVote === mode ? "bg-secondary text-secondary-foreground" : "bg-card text-foreground"
+                }`}
+              >
+                <div className="text-5xl">{MODES[mode].emoji}</div>
+                <div className="mt-1 font-display text-xl">{MODES[mode].label}</div>
+                <div className="mt-1 text-sm font-bold">
+                  {voteCount(mode)} voto{voteCount(mode) === 1 ? "" : "s"}
+                  {myVote === mode ? " · seu voto" : ""}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {banner && m.phase !== "vote" && (
         <div className="absolute inset-x-0 top-1/3 flex flex-col items-center gap-2 text-center">
           <div
             key={banner.big}
@@ -131,7 +177,7 @@ export function HUD({
       )}
 
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border-4 border-ink bg-card px-5 py-2 text-sm font-bold shadow-chunky">
-        WASD para correr · ESPAÇO para o esbarrão · Último de pé ganha a rodada
+        WASD para correr · ESPAÇO para o esbarrão · {soccer ? MODES.futebol.hint : MODES.sumo.hint}
       </div>
     </div>
   );

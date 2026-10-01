@@ -27,6 +27,8 @@ type Handlers = {
   onRoster: (roster: { id: string; name: string }[]) => void;
   onHit: (h: HitMsg) => void;
   onMatch: (m: import("@/components/game/match").MatchState) => void;
+  onVote: (v: { from: string; mode: import("@/components/game/match").Mode }) => void;
+  onBall: (b: import("@/components/game/match").BallMsg) => void;
 };
 
 export function useGameChannel(roomCode: string, name: string, handlers: Handlers) {
@@ -52,6 +54,12 @@ export function useGameChannel(roomCode: string, name: string, handlers: Handler
       })
       .on("broadcast", { event: "match" }, ({ payload }) => {
         h.current.onMatch(payload as import("@/components/game/match").MatchState);
+      })
+      .on("broadcast", { event: "vote" }, ({ payload }) => {
+        h.current.onVote(payload as { from: string; mode: import("@/components/game/match").Mode });
+      })
+      .on("broadcast", { event: "ball" }, ({ payload }) => {
+        h.current.onBall(payload as import("@/components/game/match").BallMsg);
       })
       .on("presence", { event: "sync" }, () => {
         const roster = Object.entries(
