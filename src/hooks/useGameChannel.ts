@@ -6,6 +6,8 @@ export type NetState = {
   id: string;
   name: string;
   x: number;
+  vx?: number;
+  vz?: number;
   y: number;
   z: number;
   ry: number;
