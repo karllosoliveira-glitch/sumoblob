@@ -59,7 +59,7 @@ function Index() {
     if (!session?.user || !joined || m.phase !== "final" || m.seq === lastFinalSeq.current) return;
     lastFinalSeq.current = m.seq;
     const won = m.winner === playerId || (m.mode === "futebol" && m.winner && roster.length > 0 && m.winner === "A");
-    void recordGame(session.user.id, won);
+    void recordGame(session.user.id, !!won);
   }, [m.phase, m.seq, m.winner, m.mode, joined, session, roster.length]);
 
   const rows = useMemo(() => {
@@ -118,7 +118,7 @@ function Index() {
       <main className="relative z-10 mx-auto flex min-h-[calc(100vh-90px)] max-w-6xl items-center justify-center px-5 pb-12 pt-3">
         {tab === "home" && <Home name={name} setName={setName} room={room} setRoom={setRoom} join={join} />}
         {tab === "ranking" && <Ranking leaders={leaders} onBack={() => setTab("home")} />}
-        {tab === "settings" && <SettingsPanel sound={sound} setSound={(v) => { setSound(v); localStorage.setItem("sumoblob-sound", v ? "on" : "off"); }} reducedMotion={reducedMotion} setReducedMotion={(v) => { setReducedMotion(v); localStorage.setItem("sumoblob-motion", v ? "reduced" : "full"); }} onBack={() => setTab("home")} />}
+        {tab === "settings" && <SettingsPanel sound={sound} setSound={(v: boolean) => { setSound(v); localStorage.setItem("sumoblob-sound", v ? "on" : "off"); }} reducedMotion={reducedMotion} setReducedMotion={(v: boolean) => { setReducedMotion(v); localStorage.setItem("sumoblob-motion", v ? "reduced" : "full"); }} onBack={() => setTab("home")} />}
         {tab === "account" && <Account session={session} google={google} logout={logout} loading={loadingGoogle} onBack={() => setTab("home")} />}
       </main>
     </div>
@@ -158,6 +158,6 @@ function SettingRow({ icon, title, description, value, onChange }: any) { return
 function MenuButton({ icon, label, active, onClick }: any) { return <button onClick={onClick} className={`hidden items-center gap-2 rounded-2xl border-3 border-[#241b35] px-3 py-2 text-sm font-black shadow-[0_4px_0_#241b35] transition hover:-translate-y-0.5 md:flex ${active ? "bg-[#ffcf3f] text-[#241b35]" : "bg-white/90 text-[#241b35]"}`}>{icon}{label}</button>; }
 function Pill({ children }: any) { return <span className="rounded-full border-3 border-[#241b35] bg-white/90 px-3 py-1 text-xs font-black text-[#241b35] shadow-[0_3px_0_#241b35]">{children}</span>; }
 
-async function loadLeaderboard(setter: (rows: Leader[]) => void) { const { data } = await supabase.from("leaderboard" as any).select("user_id,username,wins,games").order("wins", { ascending: false }).order("games", { ascending: false }).limit(50); setter((data ?? []) as Leader[]); }
+async function loadLeaderboard(setter: (rows: Leader[]) => void) { const { data } = await (supabase as any).from("leaderboard").select("user_id,username,wins,games").order("wins", { ascending: false }).order("games", { ascending: false }).limit(50); setter((data ?? []) as Leader[]); }
 
-async function recordGame(userId: string, won: boolean) { const { data } = await supabase.from("leaderboard" as any).select("username,wins,games").eq("user_id", userId).maybeSingle(); if (!data) return; await supabase.from("leaderboard" as any).update({ wins: Number(data.wins ?? 0) + (won ? 1 : 0), games: Number(data.games ?? 0) + 1, updated_at: new Date().toISOString() }).eq("user_id", userId); await supabase.from("profiles" as any).update({ wins: Number(data.wins ?? 0) + (won ? 1 : 0), games: Number(data.games ?? 0) + 1, updated_at: new Date().toISOString() }).eq("id", userId); }
+async function recordGame(userId: string, won: boolean) { const { data } = await (supabase as any).from("leaderboard" as any).select("username,wins,games").eq("user_id", userId).maybeSingle(); if (!data) return; await (supabase as any).from("leaderboard" as any).update({ wins: Number(data.wins ?? 0) + (won ? 1 : 0), games: Number(data.games ?? 0) + 1, updated_at: new Date().toISOString() }).eq("user_id", userId); await (supabase as any).from("profiles" as any).update({ wins: Number(data.wins ?? 0) + (won ? 1 : 0), games: Number(data.games ?? 0) + 1, updated_at: new Date().toISOString() }).eq("id", userId); }

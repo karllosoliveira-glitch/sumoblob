@@ -30,7 +30,7 @@ export function Ball({ playerRef, localRef, remote }: { playerRef: React.RefObje
       const bodies: { id: string; x: number; z: number; vx: number; vz: number; dash: number; tackle: number; kick: number }[] = [];
       const me = playerRef.current;
       if (me && !localRef.current.dead) bodies.push({ id: "me", x: me.position.x, z: me.position.z, vx: localRef.current.vx, vz: localRef.current.vz, dash: localRef.current.dash, tackle: localRef.current.tackle, kick: localRef.current.kick });
-      for (const s of remote.current.values()) if (!s.out && !s.dead) bodies.push({ id: s.id, x: s.x, z: s.z, vx: s.vx, vz: s.vz, dash: s.dash, tackle: 0, kick: 0 });
+      for (const s of remote.current.values()) if (!s.out && !s.dead) bodies.push({ id: s.id, x: s.x, z: s.z, vx: (s.vx??0), vz: (s.vz??0), dash: s.dash, tackle: 0, kick: 0 });
 
       if (m.phase === "fight") for (const b of bodies) {
         const dx = ball.x - b.x, dz = ball.z - b.z, d = Math.hypot(dx, dz), minD = BALL_R + PLAYER_R;
