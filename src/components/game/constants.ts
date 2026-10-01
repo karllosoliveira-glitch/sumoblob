@@ -20,18 +20,18 @@ export const SOAP_DRAG = 0.9;
 export const SOAP_ACCEL = 22;
 
 // corrida maluca
-export const RACE_X_MIN = -16;
-export const RACE_X_FINISH = 15;
+export const RACE_X_MIN = -8.5;
+export const RACE_X_FINISH = 8;
 export const RACE_LANE_HALF = 5.2;
 export const RACE_DRAG = 0.42;
 export const RACE_ACCEL = 29;
 export const RACE_MAX_SPEED = 12;
 export const RACE_OBSTACLES = [
-  { x: -8, z: 0, r: 1.25, type: "soap" as const },
-  { x: -3, z: -3, r: 1.05, type: "bumper" as const },
-  { x: 1, z: 2.6, r: 1.05, type: "banana" as const },
-  { x: 5, z: -2.2, r: 1.35, type: "soap" as const },
-  { x: 9, z: 2.8, r: 1.1, type: "bumper" as const },
+  { x: -4.5, z: 0, r: 1.25, type: "soap" as const },
+  { x: -2.0, z: -3, r: 1.05, type: "bumper" as const },
+  { x: 0.5, z: 2.6, r: 1.05, type: "banana" as const },
+  { x: 3.2, z: -2.2, r: 1.35, type: "soap" as const },
+  { x: 5.5, z: 2.8, r: 1.1, type: "bumper" as const },
 ];
 
 export function spawnAngle(id: string) {
