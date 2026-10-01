@@ -108,7 +108,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     } else if (cur.phase === "fight" && cur.mode === "corrida") {
       const finishers = all.filter((id) => id === playerId ? (playerRef.current?.position.x ?? -999) >= RACE_X_FINISH : (remote.current.get(id)?.x ?? -999) >= RACE_X_FINISH);
       if (finishers.length) {
-        const w = finishers[0];
+        const w = finishers[0]!;
         const points = { ...cur.points, [w]: (cur.points[w] ?? 0) + 1 };
         go({ phase: "roundEnd", winner: w, points });
       }
