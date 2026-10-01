@@ -8,12 +8,20 @@ import type { LocalState } from "./Player";
 import {
   COUNTDOWN_MS,
   FINAL_MS,
+  FOOT_TIME_MS,
+  GOALS_TO_WIN,
   ROUND_END_MS,
   ROUNDS,
+  TEAMS,
+  VOTE_MS,
+  ballNet,
   hitQueue,
   match,
   net,
+  teamOf,
+  useMatch,
   type MatchState,
+  type Mode,
 } from "./match";
 import { sfx } from "./sfx";
 
@@ -43,17 +51,32 @@ export function Multiplayer({
   const acc = useRef(0);
   const hostAcc = useRef(0);
   const lastMatchSend = useRef(0);
+  const pendingGoal = useRef<"A" | "B" | null>(null);
+  const votesDirty = useRef(false);
   const last = useRef({ x: 0, y: 0, z: 0, ry: 0, dash: 0, out: 0, falls: 0, dead: 0, at: -1 });
+  const m = useMatch();
+  const allIds = [playerId, ...ids];
 
-  const applyMatch = (m: MatchState) => {
+  const applyMatch = (next: MatchState) => {
     const cur = match.get();
-    if (m.seq === cur.seq && m.phase === cur.phase) {
-      if (JSON.stringify(m.points) !== JSON.stringify(cur.points)) match.set({ ...cur, points: m.points });
+    if (next.seq === cur.seq && next.phase === cur.phase) {
+      if (
+        JSON.stringify(next.points) !== JSON.stringify(cur.points) ||
+        JSON.stringify(next.votes) !== JSON.stringify(cur.votes)
+      )
+        match.set({ ...cur, points: next.points, votes: next.votes });
       return;
     }
-    if (m.phase === "countdown") sfx.pop();
-    if (m.phase === "roundEnd" || m.phase === "final") sfx.fanfare();
-    match.set({ ...m, phaseAt: Date.now() });
+    if (next.phase === "countdown") sfx.pop();
+    if (next.phase === "roundEnd" || next.phase === "final") sfx.fanfare();
+    match.set({ ...next, phaseAt: Date.now() });
+  };
+
+  const recordVote = (from: string, mode: Mode) => {
+    const cur = match.get();
+    if (cur.phase !== "vote") return;
+    match.set({ ...cur, votes: { ...cur.votes, [from]: mode } });
+    votesDirty.current = true;
   };
 
   const channelRef = useGameChannel(roomCode, name, {
@@ -76,62 +99,113 @@ export function Multiplayer({
     onHit: (h) => {
       hitQueue.push(h);
     },
-    onMatch: (m) => {
-      // só aceita do anfitrião atual
-      const host = [playerId, ...roster.current].sort()[0];
-      if (host !== playerId) applyMatch(m);
+    onMatch: (mm) => {
+      if (!net.isHost) applyMatch(mm);
+    },
+    onVote: (v) => {
+      if (net.isHost) recordVote(v.from, v.mode);
+    },
+    onBall: (b) => {
+      if (net.isHost) return;
+      Object.assign(ballNet, b, { at: performance.now(), fresh: true });
     },
   });
 
-  net.hit = (m) => {
-    channelRef.current?.send({ type: "broadcast", event: "hit", payload: m });
+  net.hit = (msg) => {
+    channelRef.current?.send({ type: "broadcast", event: "hit", payload: msg });
+  };
+  net.vote = (mode) => {
+    if (net.isHost) recordVote(playerId, mode);
+    else channelRef.current?.send({ type: "broadcast", event: "vote", payload: { from: playerId, mode } });
+    // mostra meu voto na hora
+    const cur = match.get();
+    if (!net.isHost && cur.phase === "vote") match.set({ ...cur, votes: { ...cur.votes, [playerId]: mode } });
+  };
+  net.ball = (b) => {
+    channelRef.current?.send({ type: "broadcast", event: "ball", payload: b });
+  };
+  net.goal = (team) => {
+    pendingGoal.current = team;
   };
 
   const hostTick = (now: number) => {
     const all = [playerId, ...roster.current].sort();
-    if (all[0] !== playerId) return;
-    const m = match.get();
-    const elapsed = now - m.phaseAt;
+    net.ids = all;
+    net.isHost = all[0] === playerId;
+    if (!net.isHost) return;
+    const cur = match.get();
+    const elapsed = now - cur.phaseAt;
     const n = all.length;
     let next: MatchState | null = null;
     const go = (patch: Partial<MatchState>) =>
-      (next = { ...m, ...patch, phaseAt: now, seq: m.seq + 1 });
+      (next = { ...cur, ...patch, phaseAt: now, seq: cur.seq + 1 });
 
     if (n < 2) {
-      if (m.phase !== "lobby") go({ phase: "lobby", round: 0, winner: null, points: {} });
-    } else if (m.phase === "lobby") {
-      go({ phase: "countdown", round: 1, winner: null, points: {} });
-    } else if (m.phase === "countdown" && elapsed > COUNTDOWN_MS) {
+      if (cur.phase !== "lobby") go({ phase: "lobby", round: 0, winner: null, points: {}, votes: {} });
+    } else if (cur.phase === "lobby") {
+      go({ phase: "vote", round: 0, winner: null, points: {}, votes: {} });
+    } else if (cur.phase === "vote") {
+      const votes = Object.entries(cur.votes).filter(([id]) => all.includes(id));
+      if (elapsed > VOTE_MS || votes.length >= n) {
+        const count = { sumo: 0, futebol: 0 };
+        votes.forEach(([, v]) => count[v]++);
+        const mode: Mode =
+          count.futebol > count.sumo
+            ? "futebol"
+            : count.sumo > count.futebol
+              ? "sumo"
+              : Math.random() < 0.5
+                ? "sumo"
+                : "futebol";
+        go({ phase: "countdown", mode, round: 1, winner: null, points: {} });
+      }
+    } else if (cur.phase === "countdown" && elapsed > COUNTDOWN_MS) {
+      pendingGoal.current = null;
       go({ phase: "fight" });
-    } else if (m.phase === "fight" && elapsed > 1500) {
+    } else if (cur.phase === "fight" && cur.mode === "sumo" && elapsed > 1500) {
       const alive = all.filter((id) =>
         id === playerId ? !localRef.current.dead : !remote.current.get(id)?.dead,
       );
       if (alive.length <= 1) {
         const w = alive[0] ?? null;
-        const points = { ...m.points };
+        const points = { ...cur.points };
         if (w) points[w] = (points[w] ?? 0) + 1;
         go({ phase: "roundEnd", winner: w, points });
       }
-    } else if (m.phase === "roundEnd" && elapsed > ROUND_END_MS) {
-      const best = Math.max(0, ...Object.values(m.points));
-      const leaders = Object.keys(m.points).filter((id) => m.points[id] === best);
-      const decided = best >= Math.ceil(ROUNDS / 2) + 0 && best > ROUNDS / 2;
-      if (m.round >= ROUNDS || decided) {
-        go({ phase: "final", winner: leaders.length === 1 ? (leaders[0] ?? null) : null });
-      } else {
-        go({ phase: "countdown", round: m.round + 1, winner: null });
+    } else if (cur.phase === "fight" && cur.mode === "futebol") {
+      if (pendingGoal.current) {
+        const t = pendingGoal.current;
+        pendingGoal.current = null;
+        const points = { ...cur.points, [t]: (cur.points[t] ?? 0) + 1 };
+        go({ phase: "roundEnd", winner: t, points });
       }
-    } else if (m.phase === "final" && elapsed > FINAL_MS) {
-      go({ phase: "countdown", round: 1, winner: null, points: {} });
+    } else if (cur.phase === "roundEnd" && elapsed > ROUND_END_MS) {
+      if (cur.mode === "futebol") {
+        const a = cur.points.A ?? 0;
+        const b = cur.points.B ?? 0;
+        const totalTime = now - (cur.points.__start ?? now);
+        if (a >= GOALS_TO_WIN || b >= GOALS_TO_WIN || totalTime > FOOT_TIME_MS) {
+          go({ phase: "final", winner: a > b ? "A" : b > a ? "B" : null });
+        } else {
+          go({ phase: "countdown", round: cur.round + 1, winner: null });
+        }
+      } else {
+        const best = Math.max(0, ...Object.values(cur.points));
+        const leaders = Object.keys(cur.points).filter((id) => cur.points[id] === best);
+        if (cur.round >= ROUNDS || best > ROUNDS / 2) {
+          go({ phase: "final", winner: leaders.length === 1 ? (leaders[0] ?? null) : null });
+        } else {
+          go({ phase: "countdown", round: cur.round + 1, winner: null });
+        }
+      }
+    } else if (cur.phase === "final" && elapsed > FINAL_MS) {
+      go({ phase: "vote", round: 0, winner: null, points: {}, votes: {} });
     }
 
     const channel = channelRef.current;
-    if (next) {
-      applyMatch(next);
-      match.set(next);
-    }
-    if (channel && (next || now - lastMatchSend.current > 1000)) {
+    if (next) match.set(next as MatchState);
+    if (channel && (next || votesDirty.current || now - lastMatchSend.current > 1000)) {
+      votesDirty.current = false;
       lastMatchSend.current = now;
       channel.send({ type: "broadcast", event: "match", payload: match.get() });
     }
@@ -203,7 +277,11 @@ export function Multiplayer({
             else meshes.current.delete(id);
           }}
         >
-          <Sumo color={colorForId(id)} seed={i * 1.7 + 1} />
+          <Sumo
+            key={m.mode}
+            color={m.mode === "futebol" ? TEAMS[teamOf(id, allIds)].color : colorForId(id)}
+            seed={i * 1.7 + 1}
+          />
           <Text
             position={[0, 2.5, 0]}
             fontSize={0.42}
