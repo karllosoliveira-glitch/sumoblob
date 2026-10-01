@@ -7,6 +7,7 @@ import { Ball } from "./Ball";
 import { MobileControls } from "./MobileControls";
 import { Multiplayer } from "./Multiplayer";
 import { Player, type LocalState } from "./Player";
+import { SoccerScoreboard } from "./SoccerScoreboard";
 import { useMatch } from "./match";
 
 export function GameCanvas({ roomCode, name, onFall, onRoster, onScores }: { roomCode: string; name: string; onFall: () => void; onRoster: (roster: { id: string; name: string }[]) => void; onScores: (scores: Record<string, number>) => void; }) {
@@ -22,6 +23,7 @@ export function GameCanvas({ roomCode, name, onFall, onRoster, onScores }: { roo
       <ambientLight intensity={0.55} /><directionalLight position={[9, 16, 8]} intensity={1.8} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} shadow-camera-left={-18} shadow-camera-right={18} shadow-camera-top={18} shadow-camera-bottom={-18} />
       <Suspense fallback={null}><Arena /><Player playerRef={playerRef} localRef={localRef} remote={remote} onFall={onFall} /><Ball playerRef={playerRef} localRef={localRef} remote={remote} /><Multiplayer roomCode={roomCode} name={name} playerRef={playerRef} localRef={localRef} remote={remote} onRoster={onRoster} onScores={onScores} /></Suspense>
     </Canvas>
+    <SoccerScoreboard />
     <MobileControls soccer={soccer} />
   </div>;
 }
