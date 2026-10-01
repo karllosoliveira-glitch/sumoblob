@@ -5,10 +5,15 @@ import { useKeyboard } from "@/hooks/useKeyboard";
 import { playerId, type NetState } from "@/hooks/useGameChannel";
 import { Sumo, colorForId } from "../Sumo";
 import { sfx } from "./sfx";
-import { hitQueue, match, net } from "./match";
+import { TEAMS, ball, hitQueue, match, net, teamOf, useMatch } from "./match";
 import {
   ACCEL,
   ARENA_R,
+  BALL_R,
+  FIELD_X,
+  FIELD_Z,
+  SOAP_ACCEL,
+  SOAP_DRAG,
   DASH_COOLDOWN,
   DASH_PUSH,
   DASH_SPEED,
@@ -31,7 +36,11 @@ export type LocalState = {
 const tmp = new THREE.Vector3();
 const camTarget = new THREE.Vector3();
 
-export function Player({
+export function Player(props: Parameters<typeof PlayerInner>[0]) {
+  return <PlayerInner {...props} />;
+}
+
+function PlayerInner({
   playerRef,
   localRef,
   remote,
@@ -98,13 +107,23 @@ export function Player({
     // nova rodada: todo mundo volta pro ringue
     if (m.seq !== lastSeq.current) {
       lastSeq.current = m.seq;
-      if (m.phase === "countdown") {
+      if (m.phase === "countdown" && m.mode === "futebol") {
+        const ids = [playerId, ...remote.current.keys()].sort();
+        const team = teamOf(playerId, ids);
+        const mates = ids.filter((id) => teamOf(id, ids) === team);
+        const j = mates.indexOf(playerId);
+        const side = team === "A" ? -1 : 1;
+        respawn(0, 3);
+        pos.current.set(side * 6, 3, (j - (mates.length - 1) / 2) * 2.6);
+        yaw.current = side > 0 ? -Math.PI / 2 : Math.PI / 2;
+      } else if (m.phase === "countdown") {
         const ids = [playerId, ...remote.current.keys()].sort();
         const i = ids.indexOf(playerId);
         respawn((i / Math.max(2, ids.length)) * Math.PI * 2, 4);
       }
     }
     const frozen = m.phase === "countdown";
+    const soccer = m.mode === "futebol" && m.phase !== "lobby" && m.phase !== "vote";
 
     cooldown.current = Math.max(0, cooldown.current - dt);
     dashTimer.current = Math.max(0, dashTimer.current - dt);
@@ -151,7 +170,7 @@ export function Player({
       const control = frozen ? 0 : stunned.current > 0 ? 0.15 : grounded ? 1 : 0.35;
       if ((ix || iz) && !frozen) {
         tmp.set(ix, 0, iz).normalize();
-        vel.current.addScaledVector(tmp, ACCEL * control * dt);
+        vel.current.addScaledVector(tmp, (soccer ? SOAP_ACCEL : ACCEL) * control * dt);
         if (stunned.current === 0) yaw.current = Math.atan2(tmp.x, tmp.z);
         if (grounded) {
           stepT.current += dt;
@@ -201,7 +220,20 @@ export function Player({
         }
       }
 
-      const damp = Math.exp(-(grounded && stunned.current === 0 ? DRAG : 0.9) * dt);
+      if (soccer) {
+        // encosta na bola sem atravessar
+        const bx = pos.current.x - ball.x;
+        const bz = pos.current.z - ball.z;
+        const bd = Math.hypot(bx, bz);
+        const minB = BALL_R + PLAYER_R;
+        if (bd > 0.001 && bd < minB) {
+          pos.current.x += (bx / bd) * (minB - bd) * 0.6;
+          pos.current.z += (bz / bd) * (minB - bd) * 0.6;
+        }
+      }
+
+      const baseDrag = soccer ? SOAP_DRAG : DRAG;
+      const damp = Math.exp(-(grounded && stunned.current === 0 ? baseDrag : 0.9) * dt);
       vel.current.multiplyScalar(dashTimer.current > 0 ? Math.exp(-0.6 * dt) : damp);
       const speed = vel.current.length();
       const cap = dashTimer.current > 0 || stunned.current > 0 ? DASH_PUSH : MAX_SPEED;
@@ -222,9 +254,22 @@ export function Player({
       pos.current.y = hopY.current;
 
       const r = Math.hypot(pos.current.x, pos.current.z);
-      const edge = THREE.MathUtils.clamp((r - (ARENA_R - 1.6)) / 1.4, 0, 1);
+      const edge = soccer ? 0 : THREE.MathUtils.clamp((r - (ARENA_R - 1.6)) / 1.4, 0, 1);
 
-      if (r > ARENA_R - 0.15 && hopY.current < 0.5) {
+      if (soccer) {
+        const lx = FIELD_X - PLAYER_R * 0.8;
+        const lz = FIELD_Z - PLAYER_R * 0.8;
+        if (Math.abs(pos.current.x) > lx) {
+          pos.current.x = Math.sign(pos.current.x) * lx;
+          if (Math.abs(vel.current.x) > 6) { sfx.boing(0.5); kick(5); }
+          vel.current.x *= -0.7;
+        }
+        if (Math.abs(pos.current.z) > lz) {
+          pos.current.z = Math.sign(pos.current.z) * lz;
+          if (Math.abs(vel.current.z) > 6) { sfx.boing(0.5); kick(5); }
+          vel.current.z *= -0.7;
+        }
+      } else if (r > ARENA_R - 0.15 && hopY.current < 0.5) {
         falling.current = true;
         localRef.current.out = 1;
         vy.current = 5;
@@ -270,7 +315,8 @@ export function Player({
     group.rotation.set(tiltX.current, yaw.current, tiltZ.current, "YXZ");
     group.scale.set(sxz, sy, sxz);
 
-    camTarget.set(pos.current.x * 0.35, 11, pos.current.z * 0.35 + 14.5);
+    if (soccer) camTarget.set(pos.current.x * 0.5, 15, pos.current.z * 0.3 + 15);
+    else camTarget.set(pos.current.x * 0.35, 11, pos.current.z * 0.35 + 14.5);
     camera.position.lerp(camTarget, 1 - Math.exp(-3 * dt));
     shake.current = Math.max(0, shake.current - dt * 1.5);
     if (shake.current > 0) {
@@ -283,7 +329,14 @@ export function Player({
 
   return (
     <group ref={playerRef}>
-      <Sumo color={colorForId(playerId)} seed={0} />
+      <MyBlob />
     </group>
   );
+}
+
+function MyBlob() {
+  const m = useMatch();
+  const soccer = m.mode === "futebol";
+  const color = soccer ? TEAMS[teamOf(playerId, net.ids.length ? net.ids : [playerId])].color : colorForId(playerId);
+  return <Sumo key={color} color={color} seed={0} />;
 }
