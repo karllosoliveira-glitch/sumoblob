@@ -14,3 +14,5 @@
 - Multiplayer é client-authoritative sobre Realtime Broadcast (canal `sumo:<código>`), sem servidor de jogo: cada cliente simula o próprio blob e recebe os outros interpolados. Motivo: a plataforma não hospeda hub de WebSocket.
 - Tick de rede fixo em 8 Hz com envio só em mudança + keepalive de 1s, salas de até 8 jogadores. Motivo: o limite de mensagens do Realtime é por projeto.
 - A cena 3D fica em `src/components/game/` e é montada na rota `/` com `ssr: false`. Motivo: `<Canvas>` não pode renderizar no servidor.
+- Obstáculos móveis da corrida são funções determinísticas de `worldTime()` (relógio Date.now), sem mensagens de rede. Motivo: economizar o limite de mensagens e manter as telas parecidas.
+- A partida só sai do lobby quando o anfitrião pede (`lobby.startRequested`). Motivo: o grupo decide quando começar.
