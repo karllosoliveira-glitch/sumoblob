@@ -2,7 +2,8 @@ import { Environment, Lightformer } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
-import { ARENA_R } from "./constants";
+import { ARENA_R, FIELD_X, FIELD_Z, GOAL_HALF } from "./constants";
+import { TEAMS, useMatch } from "./match";
 
 function sandTexture() {
   const size = 256;
@@ -50,8 +51,110 @@ function Balloon({ angle, radius }: { angle: number; radius: number }) {
   );
 }
 
+function soapTexture() {
+  const size = 512;
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const g = c.getContext("2d")!;
+  g.fillStyle = "#bfe9ff";
+  g.fillRect(0, 0, size, size);
+  for (let i = 0; i < 8; i++) {
+    g.fillStyle = i % 2 ? "#aee0fb" : "#c9eeff";
+    g.fillRect((i * size) / 8, 0, size / 8, size);
+  }
+  for (let i = 0; i < 260; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const r = 2 + Math.random() * 9;
+    g.strokeStyle = "rgba(255,255,255,0.8)";
+    g.lineWidth = 2;
+    g.beginPath();
+    g.arc(x, y, r, 0, Math.PI * 2);
+    g.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function Goal({ side }: { side: 1 | -1 }) {
+  const color = side > 0 ? TEAMS.B.color : TEAMS.A.color;
+  const x = side * (FIELD_X + 1);
+  return (
+    <group position={[x, 0, 0]}>
+      {[-1, 1].map((s) => (
+        <mesh key={s} position={[-side, 1.3, s * GOAL_HALF]} castShadow>
+          <cylinderGeometry args={[0.18, 0.18, 2.6, 10]} />
+          <meshStandardMaterial color={color} />
+        </mesh>
+      ))}
+      <mesh position={[-side, 2.6, 0]} rotation-x={Math.PI / 2} castShadow>
+        <cylinderGeometry args={[0.18, 0.18, GOAL_HALF * 2, 10]} />
+        <meshStandardMaterial color={color} />
+      </mesh>
+      <mesh position={[side * 0.2, 1.3, 0]}>
+        <boxGeometry args={[2, 2.6, GOAL_HALF * 2]} />
+        <meshStandardMaterial color="#ffffff" transparent opacity={0.25} wireframe />
+      </mesh>
+    </group>
+  );
+}
+
+function Field() {
+  const soap = useMemo(() => soapTexture(), []);
+  const W = FIELD_X * 2;
+  const D = FIELD_Z * 2;
+  return (
+    <group>
+      <mesh position={[0, -0.5, 0]} receiveShadow>
+        <boxGeometry args={[W + 4, 1, D + 1]} />
+        <meshStandardMaterial map={soap} roughness={0.15} metalness={0.05} />
+      </mesh>
+      {/* linhas */}
+      <mesh position={[0, 0.02, 0]} rotation-x={-Math.PI / 2}>
+        <planeGeometry args={[0.2, D]} />
+        <meshStandardMaterial color="#ffffff" />
+      </mesh>
+      <mesh position={[0, 0.02, 0]} rotation-x={-Math.PI / 2}>
+        <ringGeometry args={[2.3, 2.55, 48]} />
+        <meshStandardMaterial color="#ffffff" side={THREE.DoubleSide} />
+      </mesh>
+      {/* bordas infláveis */}
+      {[-1, 1].map((s) => (
+        <mesh key={"z" + s} position={[0, 0.4, s * (FIELD_Z + 0.4)]} rotation-z={Math.PI / 2} castShadow>
+          <capsuleGeometry args={[0.45, W + 2, 6, 12]} />
+          <meshStandardMaterial color={s > 0 ? "#ff5d5d" : "#ffd23f"} roughness={0.4} />
+        </mesh>
+      ))}
+      {[-1, 1].map((s) =>
+        [-1, 1].map((t) => {
+          const len = FIELD_Z - GOAL_HALF;
+          return (
+            <mesh
+              key={`x${s}${t}`}
+              position={[s * (FIELD_X + 0.4), 0.4, t * (GOAL_HALF + len / 2)]}
+              rotation-x={Math.PI / 2}
+              castShadow
+            >
+              <capsuleGeometry args={[0.45, len, 6, 12]} />
+              <meshStandardMaterial color={s > 0 ? TEAMS.B.color : TEAMS.A.color} roughness={0.4} />
+            </mesh>
+          );
+        }),
+      )}
+      <Goal side={1} />
+      <Goal side={-1} />
+      <mesh position={[0, -14, 0]} rotation-x={-Math.PI / 2}>
+        <circleGeometry args={[60, 48]} />
+        <meshStandardMaterial color="#5cc26a" roughness={0.2} />
+      </mesh>
+    </group>
+  );
+}
+
 export function Arena() {
   const sand = useMemo(() => sandTexture(), []);
+  const { mode } = useMatch();
 
   return (
     <group>
@@ -73,6 +176,7 @@ export function Arena() {
         />
       </Environment>
 
+      {mode === "futebol" ? <Field /> : <>
       {/* dohyo platform */}
       <mesh position={[0, -0.5, 0]} receiveShadow castShadow>
         <cylinderGeometry args={[ARENA_R, ARENA_R - 0.4, 1, 64]} />
@@ -100,6 +204,7 @@ export function Arena() {
         <meshStandardMaterial color="#5cc26a" roughness={0.2} metalness={0.1} />
       </mesh>
 
+      </>}
       {[0, 1.4, 2.8, 4.2].map((a) => (
         <Balloon key={a} angle={a} radius={ARENA_R + 7} />
       ))}

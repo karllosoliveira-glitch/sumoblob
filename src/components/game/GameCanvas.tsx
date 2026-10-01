@@ -3,6 +3,7 @@ import { Suspense, useRef } from "react";
 import * as THREE from "three";
 import type { NetState } from "@/hooks/useGameChannel";
 import { Arena } from "./Arena";
+import { Ball } from "./Ball";
 import { Multiplayer } from "./Multiplayer";
 import { Player, type LocalState } from "./Player";
 
@@ -47,6 +48,7 @@ export function GameCanvas({
           remote={remote}
           onFall={onFall}
         />
+        <Ball playerRef={playerRef} localRef={localRef} remote={remote} />
         <Multiplayer
           roomCode={roomCode}
           name={name}
