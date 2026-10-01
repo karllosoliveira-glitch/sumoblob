@@ -1,6 +1,5 @@
 export const ARENA_R = 9;
 export const PLAYER_R = 0.88;
-
 export const ACCEL = 34;
 export const DRAG = 3.2;
 export const MAX_SPEED = 9;
@@ -11,7 +10,7 @@ export const DASH_TIME = 0.28;
 export const DASH_COOLDOWN = 1.1;
 export const GRAVITY = -26;
 
-// futebol de sabão — física propositalmente exagerada e cartunesca
+// futebol de sabão
 export const FIELD_X = 12;
 export const FIELD_Z = 7.5;
 export const GOAL_HALF = 2.4;
@@ -27,19 +26,28 @@ export const KICK_COOLDOWN = 0.48;
 export const KICK_LIFT = 4.8;
 export const KICK_SPIN = 0.16;
 
-// corrida maluca
-export const RACE_X_MIN = -8.5;
-export const RACE_X_FINISH = 8;
-export const RACE_LANE_HALF = 5.2;
+// corrida maluca — pista longa, com setores e obstáculos
+export const RACE_X_MIN = -42;
+export const RACE_X_FINISH = 42;
+export const RACE_LANE_HALF = 6.2;
 export const RACE_DRAG = 0.42;
-export const RACE_ACCEL = 29;
-export const RACE_MAX_SPEED = 12;
+export const RACE_ACCEL = 31;
+export const RACE_MAX_SPEED = 14;
 export const RACE_OBSTACLES = [
-  { x: -4.5, z: 0, r: 1.25, type: "soap" as const },
-  { x: -2.0, z: -3, r: 1.05, type: "bumper" as const },
-  { x: 0.5, z: 2.6, r: 1.05, type: "banana" as const },
-  { x: 3.2, z: -2.2, r: 1.35, type: "soap" as const },
-  { x: 5.5, z: 2.8, r: 1.1, type: "bumper" as const },
+  { x: -34, z: 0, r: 1.35, type: "soap" as const },
+  { x: -29, z: -3.4, r: 1.15, type: "bumper" as const },
+  { x: -24, z: 3.1, r: 1.1, type: "banana" as const },
+  { x: -19, z: -1.5, r: 1.5, type: "soap" as const },
+  { x: -14, z: 3.6, r: 1.1, type: "bumper" as const },
+  { x: -9, z: -3.5, r: 1.25, type: "banana" as const },
+  { x: -4, z: 0, r: 1.7, type: "spinner" as const },
+  { x: 2, z: 3.4, r: 1.2, type: "bumper" as const },
+  { x: 8, z: -3.4, r: 1.45, type: "soap" as const },
+  { x: 14, z: 1.4, r: 1.15, type: "banana" as const },
+  { x: 20, z: -3.5, r: 1.25, type: "bumper" as const },
+  { x: 26, z: 3.4, r: 1.55, type: "spinner" as const },
+  { x: 32, z: -1.6, r: 1.35, type: "soap" as const },
+  { x: 37, z: 3.3, r: 1.05, type: "banana" as const },
 ];
 
 export function spawnAngle(id: string) {
