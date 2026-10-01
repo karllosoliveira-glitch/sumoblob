@@ -59,7 +59,7 @@ function Index() {
     if (!session?.user || !joined || m.phase !== "final" || m.seq === lastFinalSeq.current) return;
     lastFinalSeq.current = m.seq;
     const won = m.winner === playerId || (m.mode === "futebol" && m.winner && roster.length > 0 && m.winner === "A");
-    void recordGame(session.user.id, won);
+    void recordGame(session.user.id, !!won);
   }, [m.phase, m.seq, m.winner, m.mode, joined, session, roster.length]);
 
   const rows = useMemo(() => {
