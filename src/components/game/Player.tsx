@@ -6,46 +6,15 @@ import { playerId, type NetState } from "@/hooks/useGameChannel";
 import { Sumo, colorForId } from "../Sumo";
 import { sfx } from "./sfx";
 import { TEAMS, ball, hitQueue, match, net, teamOf, useMatch } from "./match";
-import {
-  ACCEL,
-  ARENA_R,
-  BALL_R,
-  FIELD_X,
-  FIELD_Z,
-  SOAP_ACCEL,
-  SOAP_DRAG,
-  DASH_COOLDOWN,
-  DASH_PUSH,
-  DASH_SPEED,
-  DASH_TIME,
-  DRAG,
-  GRAVITY,
-  MAX_SPEED,
-  PLAYER_R,
-  PUSH,
-  spawnAngle,
-} from "./constants";
+import { ACCEL, ARENA_R, BALL_R, FIELD_X, FIELD_Z, SOAP_ACCEL, SOAP_DRAG, DASH_COOLDOWN, DASH_PUSH, DASH_SPEED, DASH_TIME, DRAG, GRAVITY, MAX_SPEED, PLAYER_R, PUSH, spawnAngle } from "./constants";
 
-export type LocalState = {
-  dash: number;
-  out: number;
-  falls: number;
-  dead: number;
-};
-
+export type LocalState = { dash: number; out: number; falls: number; dead: number };
 const tmp = new THREE.Vector3();
 const camTarget = new THREE.Vector3();
 
-export function Player(props: Parameters<typeof PlayerInner>[0]) {
-  return <PlayerInner {...props} />;
-}
+export function Player(props: Parameters<typeof PlayerInner>[0]) { return <PlayerInner {...props} />; }
 
-function PlayerInner({
-  playerRef,
-  localRef,
-  remote,
-  onFall,
-}: {
+function PlayerInner({ playerRef, localRef, remote, onFall }: {
   playerRef: React.RefObject<THREE.Group | null>;
   localRef: React.RefObject<LocalState>;
   remote: React.RefObject<Map<string, NetState>>;
@@ -53,290 +22,133 @@ function PlayerInner({
 }) {
   const keys = useKeyboard();
   const { camera } = useThree();
-
   const a = spawnAngle(playerId);
-  const pos = useRef(
-    new THREE.Vector3(Math.cos(a) * (ARENA_R - 3), 0, Math.sin(a) * (ARENA_R - 3)),
-  );
+  const pos = useRef(new THREE.Vector3(Math.cos(a) * (ARENA_R - 3), 0, Math.sin(a) * (ARENA_R - 3)));
   const vel = useRef(new THREE.Vector3());
-  const yaw = useRef(0);
-  const dashTimer = useRef(0);
-  const cooldown = useRef(0);
-  const falling = useRef(false);
-  const vy = useRef(0);
-  const spin = useRef(0);
-  const hopY = useRef(0);
-  const hopV = useRef(0);
-  const squash = useRef(1);
-  const squashV = useRef(0);
-  const tiltX = useRef(0);
-  const tiltZ = useRef(0);
-  const hitCd = useRef(new Map<string, number>());
-  const stunned = useRef(0);
-  const stepT = useRef(0);
-  const shake = useRef(0);
-  const lastSeq = useRef(-1);
+  const yaw = useRef(0), dashTimer = useRef(0), cooldown = useRef(0);
+  const falling = useRef(false), vy = useRef(0), spin = useRef(0), hopY = useRef(0), hopV = useRef(0);
+  const squash = useRef(1), squashV = useRef(0), tiltX = useRef(0), tiltZ = useRef(0);
+  const hitCd = useRef(new Map<string, number>()), stunned = useRef(0), stepT = useRef(0), shake = useRef(0);
+  const kickFx = useRef(0), lastSeq = useRef(-1), lastSpace = useRef(false);
 
   const respawn = (ang = Math.random() * Math.PI * 2, drop = 6) => {
     pos.current.set(Math.cos(ang) * (ARENA_R - 3.5), drop, Math.sin(ang) * (ARENA_R - 3.5));
-    yaw.current = Math.atan2(-pos.current.x, -pos.current.z);
-    vel.current.set(0, 0, 0);
-    vy.current = 0;
-    spin.current = 0;
-    tiltX.current = 0;
-    tiltZ.current = 0;
-    hopY.current = drop;
-    hopV.current = 0;
-    falling.current = false;
-    localRef.current.out = 0;
-    localRef.current.dead = 0;
-    sfx.pop();
+    yaw.current = Math.atan2(-pos.current.x, -pos.current.z); vel.current.set(0, 0, 0); vy.current = 0; spin.current = 0;
+    tiltX.current = 0; tiltZ.current = 0; hopY.current = drop; hopV.current = 0; falling.current = false;
+    localRef.current.out = 0; localRef.current.dead = 0; sfx.pop();
   };
-
-  const kick = (amount: number) => {
-    squashV.current -= amount;
-  };
+  const kick = (amount: number) => { squashV.current -= amount; };
 
   useFrame((state, rawDelta) => {
-    const dt = Math.min(rawDelta, 0.05);
-    const k = keys.current;
-    const group = playerRef.current;
+    const dt = Math.min(rawDelta, 0.05), k = keys.current, group = playerRef.current;
     if (!group) return;
-    const m = match.get();
+    const m = match.get(), soccer = m.mode === "futebol" && m.phase !== "lobby" && m.phase !== "vote";
 
-    // nova rodada: todo mundo volta pro ringue
     if (m.seq !== lastSeq.current) {
       lastSeq.current = m.seq;
-      if (m.phase === "countdown" && m.mode === "futebol") {
-        const ids = [playerId, ...remote.current.keys()].sort();
-        const team = teamOf(playerId, ids);
-        const mates = ids.filter((id) => teamOf(id, ids) === team);
-        const j = mates.indexOf(playerId);
-        const side = team === "A" ? -1 : 1;
-        respawn(0, 3);
-        pos.current.set(side * 6, 3, (j - (mates.length - 1) / 2) * 2.6);
-        yaw.current = side > 0 ? -Math.PI / 2 : Math.PI / 2;
+      if (m.phase === "countdown" && soccer) {
+        const ids = [playerId, ...remote.current.keys()].sort(), team = teamOf(playerId, ids), mates = ids.filter((id) => teamOf(id, ids) === team);
+        const j = mates.indexOf(playerId), side = team === "A" ? -1 : 1;
+        respawn(0, 3); pos.current.set(side * 6, 3, (j - (mates.length - 1) / 2) * 2.6); yaw.current = side > 0 ? -Math.PI / 2 : Math.PI / 2;
       } else if (m.phase === "countdown") {
-        const ids = [playerId, ...remote.current.keys()].sort();
-        const i = ids.indexOf(playerId);
+        const ids = [playerId, ...remote.current.keys()].sort(), i = ids.indexOf(playerId);
         respawn((i / Math.max(2, ids.length)) * Math.PI * 2, 4);
       }
     }
-    const frozen = m.phase === "countdown";
-    const soccer = m.mode === "futebol" && m.phase !== "lobby" && m.phase !== "vote";
 
-    cooldown.current = Math.max(0, cooldown.current - dt);
-    dashTimer.current = Math.max(0, dashTimer.current - dt);
-    stunned.current = Math.max(0, stunned.current - dt);
+    cooldown.current = Math.max(0, cooldown.current - dt); dashTimer.current = Math.max(0, dashTimer.current - dt); stunned.current = Math.max(0, stunned.current - dt); kickFx.current = Math.max(0, kickFx.current - dt);
     localRef.current.dash = dashTimer.current > 0 ? 1 : 0;
-    for (const [id, t] of hitCd.current) {
-      if (t - dt <= 0) hitCd.current.delete(id);
-      else hitCd.current.set(id, t - dt);
-    }
+    for (const [id, t] of hitCd.current) { if (t - dt <= 0) hitCd.current.delete(id); else hitCd.current.set(id, t - dt); }
 
-    if (localRef.current.dead) {
-      group.visible = false;
-      hitQueue.length = 0;
-      camTarget.set(0, 13, 16);
-      camera.position.lerp(camTarget, 1 - Math.exp(-3 * dt));
-      camera.lookAt(0, 0, 0);
-      return;
-    }
+    if (localRef.current.dead) { group.visible = false; hitQueue.length = 0; camTarget.set(0, 13, 16); camera.position.lerp(camTarget, 1 - Math.exp(-3 * dt)); camera.lookAt(0, 0, 0); return; }
     group.visible = true;
 
     if (!falling.current) {
-      // pancadas recebidas de outros jogadores
       while (hitQueue.length) {
         const h = hitQueue.shift()!;
-        vel.current.x += h.x * h.power;
-        vel.current.z += h.z * h.power;
-        hopV.current = h.dash ? 8 : 4;
-        spin.current = (Math.random() - 0.5) * (h.dash ? 20 : 8);
-        stunned.current = h.dash ? 0.45 : 0.2;
-        kick(h.dash ? 10 : 6);
-        shake.current = h.dash ? 0.7 : 0.3;
-        sfx.boing(h.dash ? 1.2 : 0.9);
-        if (h.dash) sfx.smack();
+        vel.current.x += h.x * h.power; vel.current.z += h.z * h.power; hopV.current = h.dash ? 8 : 4;
+        spin.current = (Math.random() - 0.5) * (h.dash ? 20 : 8); stunned.current = h.dash ? 0.45 : 0.2; shake.current = h.dash ? 0.7 : 0.3;
+        kick(h.dash ? 10 : 6); sfx.boing(h.dash ? 1.2 : 0.9); if (h.dash) sfx.smack();
       }
 
-      const ix =
-        (k.has("KeyD") || k.has("ArrowRight") ? 1 : 0) -
-        (k.has("KeyA") || k.has("ArrowLeft") ? 1 : 0);
-      const iz =
-        (k.has("KeyS") || k.has("ArrowDown") ? 1 : 0) -
-        (k.has("KeyW") || k.has("ArrowUp") ? 1 : 0);
-
-      const grounded = hopY.current <= 0.001;
-      const control = frozen ? 0 : stunned.current > 0 ? 0.15 : grounded ? 1 : 0.35;
-      if ((ix || iz) && !frozen) {
-        tmp.set(ix, 0, iz).normalize();
-        vel.current.addScaledVector(tmp, (soccer ? SOAP_ACCEL : ACCEL) * control * dt);
+      const ix = (k.has("KeyD") || k.has("ArrowRight") ? 1 : 0) - (k.has("KeyA") || k.has("ArrowLeft") ? 1 : 0);
+      const iz = (k.has("KeyS") || k.has("ArrowDown") ? 1 : 0) - (k.has("KeyW") || k.has("ArrowUp") ? 1 : 0);
+      const grounded = hopY.current <= 0.001, control = m.phase === "countdown" ? 0 : stunned.current > 0 ? 0.15 : grounded ? 1 : 0.35;
+      if ((ix || iz) && m.phase !== "countdown") {
+        tmp.set(ix, 0, iz).normalize(); vel.current.addScaledVector(tmp, (soccer ? SOAP_ACCEL : ACCEL) * control * dt);
         if (stunned.current === 0) yaw.current = Math.atan2(tmp.x, tmp.z);
-        if (grounded) {
-          stepT.current += dt;
-          if (stepT.current > 0.18) {
-            stepT.current = 0;
-            sfx.step();
-            hopV.current = 2.2;
-          }
-        }
+        if (grounded) { stepT.current += dt; if (stepT.current > (soccer ? 0.13 : 0.18)) { stepT.current = 0; sfx.step(); hopV.current = soccer ? 1.7 : 2.2; } }
       }
 
-      if (!frozen && k.has("Space") && cooldown.current === 0 && stunned.current === 0) {
-        cooldown.current = DASH_COOLDOWN;
-        dashTimer.current = DASH_TIME;
+      const space = k.has("Space"), pressedSpace = space && !lastSpace.current;
+      lastSpace.current = space;
+      if (pressedSpace && cooldown.current === 0 && stunned.current === 0 && m.phase === "fight") {
+        cooldown.current = soccer ? 0.38 : DASH_COOLDOWN; dashTimer.current = soccer ? 0.20 : DASH_TIME;
         tmp.set(Math.sin(yaw.current), 0, Math.cos(yaw.current));
-        vel.current.addScaledVector(tmp, DASH_SPEED);
-        kick(-6);
-        sfx.whoosh();
+        if (soccer) { vel.current.addScaledVector(tmp, 5.5); hopV.current = 3.4; kickFx.current = 0.24; kick(9); sfx.smack(); }
+        else { vel.current.addScaledVector(tmp, DASH_SPEED); kick(-6); sfx.whoosh(); }
       }
 
-      // colisão: EU empurro o outro mandando a pancada pra ele
       for (const s of remote.current.values()) {
         if (s.out || s.dead) continue;
-        tmp.set(pos.current.x - s.x, 0, pos.current.z - s.z);
-        const d = tmp.length();
-        const minD = PLAYER_R * 2 + 0.3;
+        tmp.set(pos.current.x - s.x, 0, pos.current.z - s.z); const d = tmp.length(), minD = PLAYER_R * 2 + 0.3;
         if (d > 0.001 && d < minD) {
-          tmp.divideScalar(d); // aponta do outro para mim
-          pos.current.addScaledVector(tmp, (minD - d) * 0.5);
-          if (!hitCd.current.has(s.id) && !frozen) {
-            hitCd.current.set(s.id, 0.35);
-            const closing = Math.max(0, -vel.current.dot(tmp));
-            const dashing = dashTimer.current > 0;
+          tmp.divideScalar(d); pos.current.addScaledVector(tmp, (minD - d) * 0.5);
+          if (!hitCd.current.has(s.id) && m.phase !== "countdown") {
+            hitCd.current.set(s.id, 0.35); const closing = Math.max(0, -vel.current.dot(tmp)), dashing = dashTimer.current > 0;
             const power = dashing ? DASH_PUSH : Math.max(PUSH * 0.7, closing * 1.6);
             net.hit({ to: s.id, from: playerId, x: -tmp.x, z: -tmp.z, power, dash: dashing ? 1 : 0 });
-            // coice leve pra mim
-            if (closing > 0) vel.current.addScaledVector(tmp, closing * 0.7);
-            vel.current.addScaledVector(tmp, dashing ? 2 : 4);
-            if (dashing) {
-              dashTimer.current = 0;
-              sfx.smack();
-              shake.current = 0.35;
-            }
-            kick(4);
-            sfx.boing(0.7);
+            if (closing > 0) vel.current.addScaledVector(tmp, closing * 0.7); vel.current.addScaledVector(tmp, dashing ? 2 : 4);
+            if (dashing) { dashTimer.current = 0; sfx.smack(); shake.current = 0.35; }
+            kick(4); sfx.boing(0.7);
           }
         }
       }
 
       if (soccer) {
-        // encosta na bola sem atravessar
-        const bx = pos.current.x - ball.x;
-        const bz = pos.current.z - ball.z;
-        const bd = Math.hypot(bx, bz);
-        const minB = BALL_R + PLAYER_R;
-        if (bd > 0.001 && bd < minB) {
-          pos.current.x += (bx / bd) * (minB - bd) * 0.6;
-          pos.current.z += (bz / bd) * (minB - bd) * 0.6;
-        }
+        const bx = pos.current.x - ball.x, bz = pos.current.z - ball.z, bd = Math.hypot(bx, bz), minB = BALL_R + PLAYER_R;
+        if (bd > 0.001 && bd < minB) { pos.current.x += (bx / bd) * (minB - bd) * 0.6; pos.current.z += (bz / bd) * (minB - bd) * 0.6; }
       }
 
-      const baseDrag = soccer ? SOAP_DRAG : DRAG;
-      const damp = Math.exp(-(grounded && stunned.current === 0 ? baseDrag : 0.9) * dt);
+      const damp = Math.exp(-((soccer ? SOAP_DRAG : DRAG) * (grounded && stunned.current === 0 ? 1 : 0.9)) * dt);
       vel.current.multiplyScalar(dashTimer.current > 0 ? Math.exp(-0.6 * dt) : damp);
-      const speed = vel.current.length();
-      const cap = dashTimer.current > 0 || stunned.current > 0 ? DASH_PUSH : MAX_SPEED;
-      if (speed > cap) vel.current.multiplyScalar(cap / speed);
+      const speed = vel.current.length(), cap = dashTimer.current > 0 ? (soccer ? 13 : DASH_PUSH) : (stunned.current > 0 ? DASH_PUSH : MAX_SPEED);
+      if (speed > cap) vel.current.multiplyScalar(cap / speed); pos.current.addScaledVector(vel.current, dt);
 
-      pos.current.addScaledVector(vel.current, dt);
-
-      hopV.current += GRAVITY * dt;
-      hopY.current += hopV.current * dt;
-      if (hopY.current <= 0) {
-        if (hopV.current < -6) {
-          kick(Math.min(10, -hopV.current * 0.6));
-          sfx.boing(0.5);
-        }
-        hopY.current = 0;
-        hopV.current = 0;
-      }
+      hopV.current += GRAVITY * dt; hopY.current += hopV.current * dt;
+      if (hopY.current <= 0) { if (hopV.current < -6) { kick(Math.min(10, -hopV.current * 0.6)); sfx.boing(0.5); } hopY.current = 0; hopV.current = 0; }
       pos.current.y = hopY.current;
 
-      const r = Math.hypot(pos.current.x, pos.current.z);
-      const edge = soccer ? 0 : THREE.MathUtils.clamp((r - (ARENA_R - 1.6)) / 1.4, 0, 1);
-
+      const r = Math.hypot(pos.current.x, pos.current.z), edge = soccer ? 0 : THREE.MathUtils.clamp((r - (ARENA_R - 1.6)) / 1.4, 0, 1);
       if (soccer) {
-        const lx = FIELD_X - PLAYER_R * 0.8;
-        const lz = FIELD_Z - PLAYER_R * 0.8;
-        if (Math.abs(pos.current.x) > lx) {
-          pos.current.x = Math.sign(pos.current.x) * lx;
-          if (Math.abs(vel.current.x) > 6) { sfx.boing(0.5); kick(5); }
-          vel.current.x *= -0.7;
-        }
-        if (Math.abs(pos.current.z) > lz) {
-          pos.current.z = Math.sign(pos.current.z) * lz;
-          if (Math.abs(vel.current.z) > 6) { sfx.boing(0.5); kick(5); }
-          vel.current.z *= -0.7;
-        }
-      } else if (r > ARENA_R - 0.15 && hopY.current < 0.5) {
-        falling.current = true;
-        localRef.current.out = 1;
-        vy.current = 5;
-        spin.current = (Math.random() - 0.5) * 14;
-        sfx.scream();
-      }
+        const lx = FIELD_X - PLAYER_R * 0.8, lz = FIELD_Z - PLAYER_R * 0.8;
+        if (Math.abs(pos.current.x) > lx) { pos.current.x = Math.sign(pos.current.x) * lx; if (Math.abs(vel.current.x) > 6) { sfx.boing(0.5); kick(5); } vel.current.x *= -0.7; }
+        if (Math.abs(pos.current.z) > lz) { pos.current.z = Math.sign(pos.current.z) * lz; if (Math.abs(vel.current.z) > 6) { sfx.boing(0.5); kick(5); } vel.current.z *= -0.7; }
+      } else if (r > ARENA_R - 0.15 && hopY.current < 0.5) { falling.current = true; localRef.current.out = 1; vy.current = 5; spin.current = (Math.random() - 0.5) * 14; sfx.scream(); }
 
-      const wob = edge * Math.sin(state.clock.elapsedTime * 22) * 0.35;
-      const tx = THREE.MathUtils.clamp(vel.current.z * 0.05, -0.5, 0.5) + wob;
-      const tz = THREE.MathUtils.clamp(-vel.current.x * 0.05, -0.5, 0.5) + wob;
-      tiltX.current += (tx - tiltX.current) * (1 - Math.exp(-10 * dt));
-      tiltZ.current += (tz - tiltZ.current) * (1 - Math.exp(-10 * dt));
-      spin.current *= Math.exp(-4 * dt);
-      yaw.current += spin.current * dt;
+      const wob = edge * Math.sin(state.clock.elapsedTime * 22) * 0.35, tx = THREE.MathUtils.clamp(vel.current.z * 0.05, -0.5, 0.5) + wob, tz = THREE.MathUtils.clamp(-vel.current.x * 0.05, -0.5, 0.5) + wob;
+      tiltX.current += (tx - tiltX.current) * (1 - Math.exp(-10 * dt)); tiltZ.current += (tz - tiltZ.current) * (1 - Math.exp(-10 * dt)); spin.current *= Math.exp(-4 * dt); yaw.current += spin.current * dt;
     } else {
-      vy.current += GRAVITY * dt;
-      pos.current.y += vy.current * dt;
-      pos.current.addScaledVector(vel.current, dt);
-      tiltZ.current += spin.current * dt;
-      tiltX.current += spin.current * 0.6 * dt;
-      if (pos.current.y < -13) {
-        localRef.current.falls += 1;
-        onFall();
-        sfx.splat();
-        if (match.get().phase === "fight") {
-          localRef.current.dead = 1; // eliminado até a próxima rodada
-          pos.current.set(0, -40, 0);
-          group.position.copy(pos.current);
-          return;
-        }
-        respawn();
-      }
+      vy.current += GRAVITY * dt; pos.current.y += vy.current * dt; pos.current.addScaledVector(vel.current, dt); tiltZ.current += spin.current * dt; tiltX.current += spin.current * 0.6 * dt;
+      if (pos.current.y < -13) { localRef.current.falls += 1; onFall(); sfx.splat(); if (match.get().phase === "fight") { localRef.current.dead = 1; pos.current.set(0, -40, 0); group.position.copy(pos.current); return; } respawn(); }
     }
 
-    const stiff = 180;
-    squashV.current += (-(squash.current - 1) * stiff - squashV.current * 9) * dt;
-    squash.current += squashV.current * dt;
-    const dashStretch = dashTimer.current > 0 ? 0.25 : 0;
-    const sy = THREE.MathUtils.clamp(squash.current + dashStretch, 0.45, 1.8);
-    const sxz = 1 / Math.sqrt(sy);
-
-    group.position.copy(pos.current);
-    group.rotation.set(tiltX.current, yaw.current, tiltZ.current, "YXZ");
-    group.scale.set(sxz, sy, sxz);
-
-    if (soccer) camTarget.set(pos.current.x * 0.5, 15, pos.current.z * 0.3 + 15);
-    else camTarget.set(pos.current.x * 0.35, 11, pos.current.z * 0.35 + 14.5);
-    camera.position.lerp(camTarget, 1 - Math.exp(-3 * dt));
-    shake.current = Math.max(0, shake.current - dt * 1.5);
-    if (shake.current > 0) {
-      const s = shake.current;
-      camera.position.x += (Math.random() - 0.5) * s;
-      camera.position.y += (Math.random() - 0.5) * s;
-    }
+    const stiff = 180; squashV.current += (-(squash.current - 1) * stiff - squashV.current * 9) * dt; squash.current += squashV.current * dt;
+    const dashStretch = dashTimer.current > 0 ? (soccer ? 0.18 : 0.25) : 0, sy = THREE.MathUtils.clamp(squash.current + dashStretch, 0.45, 1.8), sxz = 1 / Math.sqrt(sy);
+    group.position.copy(pos.current); group.rotation.set(tiltX.current, yaw.current, tiltZ.current, "YXZ"); group.scale.set(sxz, sy, sxz);
+    const fx = group.children.find((c) => c.userData.kickFx) as THREE.Mesh | undefined;
+    if (fx) { const p = kickFx.current > 0 ? 1 - kickFx.current / 0.24 : 1; fx.visible = soccer && kickFx.current > 0; fx.scale.setScalar(0.7 + p * 2); (fx.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 0.8 * (1 - p)); }
+    if (soccer) camTarget.set(pos.current.x * 0.5, 15, pos.current.z * 0.3 + 15); else camTarget.set(pos.current.x * 0.35, 11, pos.current.z * 0.35 + 14.5);
+    camera.position.lerp(camTarget, 1 - Math.exp(-3 * dt)); shake.current = Math.max(0, shake.current - dt * 1.5);
+    if (shake.current > 0) { const s = shake.current; camera.position.x += (Math.random() - 0.5) * s; camera.position.y += (Math.random() - 0.5) * s; }
     camera.lookAt(pos.current.x * 0.3, 1.4, Math.max(-20, pos.current.z * 0.3));
   });
 
-  return (
-    <group ref={playerRef}>
-      <MyBlob />
-    </group>
-  );
+  return <group ref={playerRef}><MyBlob /><mesh userData={{ kickFx: true }} position={[0, 0.8, 1]} rotation-x={-Math.PI / 2} visible={false}><ringGeometry args={[0.18, 0.42, 20]} /><meshBasicMaterial color="#fff6a8" transparent opacity={0.8} depthWrite={false} /></mesh></group>;
 }
 
 function MyBlob() {
-  const m = useMatch();
-  const soccer = m.mode === "futebol";
+  const m = useMatch(), soccer = m.mode === "futebol";
   const color = soccer ? TEAMS[teamOf(playerId, net.ids.length ? net.ids : [playerId])].color : colorForId(playerId);
   return <Sumo key={color} color={color} seed={0} />;
 }
