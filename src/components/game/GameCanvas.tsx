@@ -12,6 +12,18 @@ import { Multiplayer } from "./Multiplayer";
 import { Player, type LocalState } from "./Player";
 import { SoccerScoreboard } from "./SoccerScoreboard";
 import { useMatch } from "./match";
+import { PHYSICS_CONFIG, physicsStepStats } from "@/config/physicsConfig";
+import { useFrame } from "@react-three/fiber";
+
+function PhysicsDebugOverlay() {
+  const ref = useRef<HTMLDivElement>(null);
+  useFrame(() => {
+    if (!ref.current || !PHYSICS_CONFIG.debug) return;
+    ref.current.textContent = `PHYSICS | fixed: ${physicsStepStats.fixedDt.toFixed(4)}s | steps: ${physicsStepStats.subSteps} | acc: ${physicsStepStats.accumulator.toFixed(4)}`;
+  });
+  if (!PHYSICS_CONFIG.debug) return null;
+  return <div ref={ref} className="pointer-events-none absolute left-2 top-2 z-50 rounded bg-black/70 px-2 py-1 font-mono text-[10px] text-white" />;
+}
 
 export function GameCanvas({ roomCode, name, onFall, onRoster, onScores }: { roomCode: string; name: string; onFall: () => void; onRoster: (roster: { id: string; name: string }[]) => void; onScores: (scores: Record<string, number>) => void; }) {
   const playerRef = useRef<THREE.Group>(null);
@@ -28,6 +40,7 @@ export function GameCanvas({ roomCode, name, onFall, onRoster, onScores }: { roo
       <ambientLight intensity={0.48} /><hemisphereLight args={["#d9f2ff","#304d35",0.55]} /><directionalLight position={[9, 16, 8]} intensity={1.8} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} shadow-camera-left={-18} shadow-camera-right={18} shadow-camera-top={18} shadow-camera-bottom={-18} />
       <Suspense fallback={null}><Arena /><ContactShadows position={[0,0.02,0]} opacity={0.32} scale={42} blur={2.6} far={14} resolution={512} /><Player playerRef={playerRef} localRef={localRef} remote={remote} onFall={onFall} /><Confetti /><Ball playerRef={playerRef} localRef={localRef} remote={remote} /><Multiplayer roomCode={roomCode} name={name} playerRef={playerRef} localRef={localRef} remote={remote} onRoster={onRoster} onScores={onScores} /></Suspense>
     </Canvas>
+    <PhysicsDebugOverlay />
     <SoccerScoreboard />
     <RaceHUD playerRef={playerRef} localRef={localRef} remote={remote} />
     <MobileControls soccer={soccer} />
