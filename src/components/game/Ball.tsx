@@ -18,7 +18,7 @@ function ballTexture() {
 export function Ball({ playerRef, localRef, remote }: { playerRef: React.RefObject<THREE.Group | null>; localRef: React.RefObject<LocalState>; remote: React.RefObject<Map<string, NetState>> }) {
   const ref = useRef<THREE.Mesh>(null), tex = useMemo(() => ballTexture(), []);
   const lastSeq = useRef(-1), sendAcc = useRef(0), hitCd = useRef(new Map<string, number>()), q = useMemo(() => new THREE.Quaternion(), []), axis = useMemo(() => new THREE.Vector3(), []);
-  const spin = useRef(0), height = useRef(BALL_R), vy = useRef(0), lastKick = useRef(0);
+  const spin = useRef(0), height = useRef(BALL_R), vy = useRef(0), lastKick = useRef(0), visualPos = useRef(new THREE.Vector3());
   const rapier = useRef<SoccerPhysics|null>(null);
   useEffect(()=>{let alive=true;getSoccerPhysics().then(p=>{if(alive)rapier.current=p});return()=>{alive=false}},[]);
   const reset = () => { ball.x = ball.z = ball.vx = ball.vz = 0; ballNet.x = ballNet.z = ballNet.vx = ballNet.vz = 0; spin.current = 0; height.current = BALL_R; vy.current = 0; };
@@ -101,7 +101,9 @@ export function Ball({ playerRef, localRef, remote }: { playerRef: React.RefObje
       const age = Math.min(0.3, (performance.now() - ballNet.at) / 1000), tx = ballNet.x + ballNet.vx * age, tz = ballNet.z + ballNet.vz * age, k = 1 - Math.exp(-16 * dt);
       if (Math.hypot(tx - ball.x, tz - ball.z) > 4) { ball.x = tx; ball.z = tz; } else { ball.x += (tx - ball.x) * k; ball.z += (tz - ball.z) * k; } ball.vx = ballNet.vx; ball.vz = ballNet.vz;
     }
-    mesh.position.set(ball.x, height.current, ball.z);
+    const visualK = 1 - Math.exp(-28 * dt);
+    visualPos.current.lerp(new THREE.Vector3(ball.x, height.current, ball.z), visualK);
+    mesh.position.copy(visualPos.current);
     const mx = ball.x - px, mz = ball.z - pz, dist = Math.hypot(mx, mz); if (dist > 1e-5) { axis.set(mz, 0, -mx).normalize(); q.setFromAxisAngle(axis, dist / BALL_R); mesh.quaternion.premultiply(q); }
     if (lastKick.current > 0) mesh.scale.setScalar(1 + Math.sin(lastKick.current * 45) * 0.08);
     else mesh.scale.lerp(new THREE.Vector3(1, 1, 1), 1 - Math.exp(-12 * dt));
