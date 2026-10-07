@@ -112,3 +112,10 @@ export class SoccerPhysics {
     return { x: p.x, y: p.y, z: p.z, vx: v.x, vy: v.y, vz: v.z };
   }
 }
+
+
+let soccerPhysicsPromise: Promise<SoccerPhysics> | null = null;
+export function getSoccerPhysics() {
+  if (!soccerPhysicsPromise) soccerPhysicsPromise = SoccerPhysics.create(12, 7.5, 0.88, 1.1);
+  return soccerPhysicsPromise;
+}
