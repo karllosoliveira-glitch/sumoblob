@@ -1,4 +1,4 @@
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { ContactShadows, PerformanceMonitor } from "@react-three/drei";
 import { Suspense, useRef, useState } from "react";
 import * as THREE from "three";
@@ -13,7 +13,6 @@ import { Player, type LocalState } from "./Player";
 import { SoccerScoreboard } from "./SoccerScoreboard";
 import { useMatch } from "./match";
 import { PHYSICS_CONFIG, physicsStepStats } from "@/config/physicsConfig";
-import { useFrame } from "@react-three/fiber";
 
 function PhysicsDebugOverlay() {
   const ref = useRef<HTMLDivElement>(null);
