@@ -59,7 +59,7 @@ export class SoccerPhysics {
     );
     this.ballBody.setAdditionalMass(0.55, true);
     this.world.createCollider(
-      R.ColliderDesc.ball(ballRadius).setCollisionGroups(PHYSICS_CONFIG.collision.ball | ((PHYSICS_CONFIG.collision.world | PHYSICS_CONFIG.collision.player) << 16)).setFriction(0.32).setRestitution(0.78).setDensity(0.55),
+      R.ColliderDesc.ball(ballRadius).setCollisionGroups(PHYSICS_CONFIG.collision.ball | ((PHYSICS_CONFIG.collision.world | PHYSICS_CONFIG.collision.player | PHYSICS_CONFIG.collision.sensor) << 16)).setFriction(0.32).setRestitution(0.78).setDensity(0.55),
       this.ballBody,
     );
 
