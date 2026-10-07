@@ -7,6 +7,7 @@ import { BALL_BOUNCE, BALL_MAX_SPEED, BALL_R, BALL_ROLL_DRAG, FIELD_X, FIELD_Z, 
 import { ball, ballNet, hitQueue, match, net } from "./match";
 import { playerId } from "@/hooks/useGameChannel";
 import { sfx } from "./sfx";
+import { getSoccerPhysics, type SoccerPhysics } from "./rapier";
 
 function ballTexture() {
   const c = document.createElement("canvas"); c.width = 256; c.height = 128; const g = c.getContext("2d")!; g.fillStyle = "#fffaf0"; g.fillRect(0, 0, 256, 128);
@@ -17,7 +18,7 @@ function ballTexture() {
 export function Ball({ playerRef, localRef, remote }: { playerRef: React.RefObject<THREE.Group | null>; localRef: React.RefObject<LocalState>; remote: React.RefObject<Map<string, NetState>> }) {
   const ref = useRef<THREE.Mesh>(null), tex = useMemo(() => ballTexture(), []);
   const lastSeq = useRef(-1), sendAcc = useRef(0), hitCd = useRef(new Map<string, number>()), q = useMemo(() => new THREE.Quaternion(), []), axis = useMemo(() => new THREE.Vector3(), []);
-  const spin = useRef(0), height = useRef(BALL_R), vy = useRef(0), lastKick = useRef(0);
+  const spin = useRef(0), height = useRef(BALL_R), vy = useRef(0), lastKick = useRef(0);\n  const rapier = useRef<SoccerPhysics|null>(null);\n  useMemo(()=>{getSoccerPhysics().then(p=>{rapier.current=p});return null},[]);
   const reset = () => { ball.x = ball.z = ball.vx = ball.vz = 0; ballNet.x = ballNet.z = ballNet.vx = ballNet.vz = 0; spin.current = 0; height.current = BALL_R; vy.current = 0; };
 
   useFrame((_, raw) => {
@@ -66,19 +67,33 @@ export function Ball({ playerRef, localRef, remote }: { playerRef: React.RefObje
             lastKick.current = 0.16;
             if (kicking) sfx.kick(); else sfx.whoosh();
             // Carrinho rouba: a bola sai na direção do carrinho, não de onde veio.
-            if (tackling && !kicking) { const sp = Math.hypot(b.vx, b.vz) || 1; ball.vx = (b.vx / sp) * 16; ball.vz = (b.vz / sp) * 16; }
+            if (tackling && !kicking && !rapier.current) { const sp = Math.hypot(b.vx, b.vz) || 1; ball.vx = (b.vx / sp) * 16; ball.vz = (b.vz / sp) * 16; }
           } else sfx.boing(0.45);
         }
       }
 
-      const f = Math.exp(-BALL_ROLL_DRAG * dt); ball.vx *= f; ball.vz *= f;
-      if (height.current > BALL_R + 0.001 || vy.current !== 0) { vy.current -= 22 * dt; height.current += vy.current * dt; if (height.current <= BALL_R) { if (vy.current < -4) { vy.current = -vy.current * 0.55; sfx.boing(0.35); } else vy.current = 0; height.current = BALL_R; } }
-      ball.x += (ball.vx - ball.vz * spin.current * 0.025) * dt; ball.z += (ball.vz + ball.vx * spin.current * 0.025) * dt; spin.current *= Math.exp(-1.5 * dt);
-      const sp = Math.hypot(ball.vx, ball.vz); if (sp > BALL_MAX_SPEED) { ball.vx *= BALL_MAX_SPEED / sp; ball.vz *= BALL_MAX_SPEED / sp; }
-      if (Math.abs(ball.z) > FIELD_Z - BALL_R) { ball.z = Math.sign(ball.z) * (FIELD_Z - BALL_R); ball.vz *= -BALL_BOUNCE; spin.current *= -0.7; sfx.boing(0.4); }
-      const inMouth = Math.abs(ball.z) < GOAL_HALF - BALL_R * 0.4;
-      if (inMouth) { if (Math.abs(ball.x) > FIELD_X + 0.6 && m.phase === "fight") { net.goal(ball.x > 0 ? "A" : "B"); sfx.splat(); reset(); } else if (Math.abs(ball.x) > FIELD_X + 1.6) { ball.x = Math.sign(ball.x) * (FIELD_X + 1.6); ball.vx *= -0.5; } }
-      else if (Math.abs(ball.x) > FIELD_X - BALL_R) { ball.x = Math.sign(ball.x) * (FIELD_X - BALL_R); ball.vx *= -BALL_BOUNCE; sfx.boing(0.4); }
+      if (rapier.current) {
+        const p = rapier.current;
+        p.ballBody.setTranslation({ x: ball.x, y: Math.max(BALL_R, height.current), z: ball.z }, true);
+        p.ballBody.setLinvel({ x: ball.vx, y: vy.current, z: ball.vz }, true);
+        if (lastKick.current > 0) {
+          p.ballBody.setLinvel({ x: p.ballBody.linvel().x, y: Math.max(p.ballBody.linvel().y, 4.8), z: p.ballBody.linvel().z }, true);
+        }
+        p.step(dt);
+        const bs = p.ballState();
+        ball.x = bs.x; ball.z = bs.z; ball.vx = bs.vx; ball.vz = bs.vz;
+        height.current = Math.max(BALL_R, bs.y); vy.current = bs.vy;
+        const sp = Math.hypot(ball.vx, ball.vz); if (sp > BALL_MAX_SPEED) { ball.vx *= BALL_MAX_SPEED / sp; ball.vz *= BALL_MAX_SPEED / sp; p.ballBody.setLinvel({ x: ball.vx, y: vy.current, z: ball.vz }, true); }
+        if (Math.abs(ball.z) > FIELD_Z - BALL_R) { ball.z = Math.sign(ball.z) * (FIELD_Z - BALL_R); ball.vz *= -BALL_BOUNCE; p.ballBody.setTranslation({ x: ball.x, y: height.current, z: ball.z }, true); p.ballBody.setLinvel({ x: ball.vx, y: vy.current, z: ball.vz }, true); }
+        const inMouth = Math.abs(ball.z) < GOAL_HALF - BALL_R * 0.4;
+        if (inMouth) { if (Math.abs(ball.x) > FIELD_X + 0.6 && m.phase === "fight") { net.goal(ball.x > 0 ? "A" : "B"); sfx.splat(); reset(); p.resetBall(); } else if (Math.abs(ball.x) > FIELD_X + 1.6) { ball.x = Math.sign(ball.x) * (FIELD_X + 1.6); ball.vx *= -0.5; p.resetBall(ball.x, ball.z, height.current); } }
+        else if (Math.abs(ball.x) > FIELD_X - BALL_R) { ball.x = Math.sign(ball.x) * (FIELD_X - BALL_R); ball.vx *= -BALL_BOUNCE; p.ballBody.setTranslation({ x: ball.x, y: height.current, z: ball.z }, true); p.ballBody.setLinvel({ x: ball.vx, y: vy.current, z: ball.vz }, true); }
+      } else {
+        const f = Math.exp(-BALL_ROLL_DRAG * dt); ball.vx *= f; ball.vz *= f;
+        ball.x += ball.vx * dt; ball.z += ball.vz * dt;
+        if (Math.abs(ball.z) > FIELD_Z - BALL_R) { ball.z = Math.sign(ball.z) * (FIELD_Z - BALL_R); ball.vz *= -BALL_BOUNCE; }
+        if (Math.abs(ball.x) > FIELD_X - BALL_R) { ball.x = Math.sign(ball.x) * (FIELD_X - BALL_R); ball.vx *= -BALL_BOUNCE; }
+      }
       sendAcc.current += dt; if (sendAcc.current > 0.05) { sendAcc.current = 0; const r = (v: number) => Math.round(v * 100) / 100; net.ball({ x: r(ball.x), z: r(ball.z), vx: r(ball.vx), vz: r(ball.vz) }); }
     } else {
       const age = Math.min(0.3, (performance.now() - ballNet.at) / 1000), tx = ballNet.x + ballNet.vx * age, tz = ballNet.z + ballNet.vz * age, k = 1 - Math.exp(-16 * dt);
