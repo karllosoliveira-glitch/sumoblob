@@ -88,7 +88,8 @@ export function Ball({ playerRef, localRef, remote }: { playerRef: React.RefObje
         const sp = Math.hypot(ball.vx, ball.vz); if (sp > BALL_MAX_SPEED) { ball.vx *= BALL_MAX_SPEED / sp; ball.vz *= BALL_MAX_SPEED / sp; p.ballBody.setLinvel({ x: ball.vx, y: vy.current, z: ball.vz }, true); }
         if (Math.abs(ball.z) > FIELD_Z - BALL_R) { ball.z = Math.sign(ball.z) * (FIELD_Z - BALL_R); ball.vz *= -BALL_BOUNCE; p.ballBody.setTranslation({ x: ball.x, y: height.current, z: ball.z }, true); p.ballBody.setLinvel({ x: ball.vx, y: vy.current, z: ball.vz }, true); }
         const inMouth = Math.abs(ball.z) < GOAL_HALF - BALL_R * 0.4;
-        if (inMouth) { if (Math.abs(ball.x) > FIELD_X + 0.6 && m.phase === "fight") { net.goal(ball.x > 0 ? "A" : "B"); sfx.splat(); reset(); p.resetBall(); } else if (Math.abs(ball.x) > FIELD_X + 1.6) { ball.x = Math.sign(ball.x) * (FIELD_X + 1.6); ball.vx *= -0.5; p.resetBall(ball.x, ball.z, height.current); } }
+        const sensorGoal = p.isBallInsideGoal("A") || p.isBallInsideGoal("B");
+        if (inMouth) { if ((sensorGoal || Math.abs(ball.x) > FIELD_X + 0.6) && m.phase === "fight") { net.goal(ball.x > 0 ? "A" : "B"); sfx.splat(); reset(); p.resetBall(); } else if (Math.abs(ball.x) > FIELD_X + 1.6) { ball.x = Math.sign(ball.x) * (FIELD_X + 1.6); ball.vx *= -0.5; p.resetBall(ball.x, ball.z, height.current); } }
         else if (Math.abs(ball.x) > FIELD_X - BALL_R) { ball.x = Math.sign(ball.x) * (FIELD_X - BALL_R); ball.vx *= -BALL_BOUNCE; p.ballBody.setTranslation({ x: ball.x, y: height.current, z: ball.z }, true); p.ballBody.setLinvel({ x: ball.vx, y: vy.current, z: ball.vz }, true); }
       } else {
         const f = Math.exp(-BALL_ROLL_DRAG * dt); ball.vx *= f; ball.vz *= f;
