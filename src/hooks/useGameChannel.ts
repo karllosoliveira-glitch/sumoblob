@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
+export type InputMsg = { id: string; seq: number; x: number; z: number; moveX: number; moveZ: number; dash: number; tackle: number; kick: number; at: number };
+
 export type NetState = {
   id: string;
   name: string;
@@ -19,6 +21,8 @@ export type NetState = {
   kick?: number; // 1 durante o chute
 };
 
+export type BallMsg = { x: number; z: number; vx: number; vz: number; seq?: number; authorityId?: string; at?: number };
+
 export type HitMsg = { to: string; from: string; x: number; z: number; power: number; dash: number };
 
 export const playerId =
@@ -28,11 +32,12 @@ export const playerId =
 
 type Handlers = {
   onState: (s: NetState) => void;
+  onInput?: (i: InputMsg) => void;
   onRoster: (roster: { id: string; name: string }[]) => void;
   onHit: (h: HitMsg) => void;
   onMatch: (m: import("@/components/game/match").MatchState) => void;
   onVote: (v: { from: string; mode: import("@/components/game/match").Mode }) => void;
-  onBall: (b: import("@/components/game/match").BallMsg) => void;
+  onBall: (b: BallMsg) => void;
 };
 
 export function useGameChannel(roomCode: string, name: string, handlers: Handlers) {
@@ -51,6 +56,10 @@ export function useGameChannel(roomCode: string, name: string, handlers: Handler
       .on("broadcast", { event: "state" }, ({ payload }) => {
         const s = payload as NetState;
         if (s.id !== playerId) h.current.onState(s);
+      })
+      .on("broadcast", { event: "input" }, ({ payload }) => {
+        const i = payload as InputMsg;
+        if (i.id !== playerId) h.current.onInput?.(i);
       })
       .on("broadcast", { event: "hit" }, ({ payload }) => {
         const m = payload as HitMsg;
