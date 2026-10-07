@@ -1,4 +1,5 @@
 import * as RAPIER from "@dimforge/rapier3d-compat";
+import { PHYSICS_CONFIG, physicsStepStats } from "@/config/physicsConfig";
 
 let initPromise: Promise<typeof RAPIER> | null = null;
 export function initRapier() {
@@ -11,6 +12,7 @@ export class SoccerPhysics {
   readonly playerBody: RAPIER.RigidBody;
   readonly ballBody: RAPIER.RigidBody;
   private ready = false;
+  private accumulator = 0;
 
   static async create(fieldX: number, fieldZ: number, playerRadius: number, ballRadius: number) {
     const R = await initRapier();
@@ -21,12 +23,13 @@ export class SoccerPhysics {
 
   private constructor(R: typeof RAPIER, fieldX: number, fieldZ: number, playerRadius: number, ballRadius: number) {
     this.world = new R.World({ x: 0, y: -22, z: 0 });
-    this.world.integrationParameters.dt = 1 / 60;
-    this.world.integrationParameters.numSolverIterations = 8;
+    this.world.integrationParameters.dt = PHYSICS_CONFIG.fixedDt;
+    this.world.integrationParameters.numSolverIterations = PHYSICS_CONFIG.solverIterations;
 
     const floor = this.world.createRigidBody(R.RigidBodyDesc.fixed().setTranslation(0, -0.5, 0));
     this.world.createCollider(
       R.ColliderDesc.cuboid(fieldX + 2, 0.5, fieldZ + 2)
+        .setCollisionGroups(PHYSICS_CONFIG.collision.world | (PHYSICS_CONFIG.collision.player << 16) | (PHYSICS_CONFIG.collision.ball << 16))
         .setFriction(0.12)
         .setRestitution(0.18),
       floor,
@@ -42,7 +45,7 @@ export class SoccerPhysics {
     );
     this.playerBody.setAdditionalMass(1.8, true);
     this.world.createCollider(
-      R.ColliderDesc.ball(playerRadius).setFriction(0.38).setRestitution(0.05).setDensity(1.5),
+      R.ColliderDesc.ball(playerRadius).setCollisionGroups(PHYSICS_CONFIG.collision.player | ((PHYSICS_CONFIG.collision.world | PHYSICS_CONFIG.collision.ball) << 16)).setFriction(0.38).setRestitution(0.05).setDensity(1.5),
       this.playerBody,
     );
 
@@ -55,7 +58,7 @@ export class SoccerPhysics {
     );
     this.ballBody.setAdditionalMass(0.55, true);
     this.world.createCollider(
-      R.ColliderDesc.ball(ballRadius).setFriction(0.32).setRestitution(0.78).setDensity(0.55),
+      R.ColliderDesc.ball(ballRadius).setCollisionGroups(PHYSICS_CONFIG.collision.ball | ((PHYSICS_CONFIG.collision.world | PHYSICS_CONFIG.collision.player) << 16)).setFriction(0.32).setRestitution(0.78).setDensity(0.55),
       this.ballBody,
     );
   }
@@ -102,8 +105,40 @@ export class SoccerPhysics {
 
   step(dt: number) {
     if (!this.ready) return;
-    this.world.timestep = Math.min(dt, 1 / 30);
-    this.world.step();
+    this.accumulator += Math.min(Math.max(dt, 0), PHYSICS_CONFIG.maxFrameDt);
+    let subSteps = 0;
+
+    while (this.accumulator >= PHYSICS_CONFIG.fixedDt && subSteps < PHYSICS_CONFIG.maxSubSteps) {
+      this.world.timestep = PHYSICS_CONFIG.fixedDt;
+      this.world.step();
+      this.accumulator -= PHYSICS_CONFIG.fixedDt;
+      subSteps++;
+    }
+
+    if (subSteps === PHYSICS_CONFIG.maxSubSteps && this.accumulator >= PHYSICS_CONFIG.fixedDt) {
+      this.accumulator = 0;
+    }
+
+    physicsStepStats.accumulator = this.accumulator;
+    physicsStepStats.subSteps = subSteps;
+
+    const clampBody = (body: RAPIER.RigidBody, maxSpeed: number, maxAngularSpeed: number) => {
+      const v = body.linvel();
+      const speed = Math.hypot(v.x, v.y, v.z);
+      if (speed > maxSpeed) {
+        const scale = maxSpeed / speed;
+        body.setLinvel({ x: v.x * scale, y: v.y * scale, z: v.z * scale }, true);
+      }
+      const a = body.angvel();
+      const angularSpeed = Math.hypot(a.x, a.y, a.z);
+      if (angularSpeed > maxAngularSpeed) {
+        const scale = maxAngularSpeed / angularSpeed;
+        body.setAngvel({ x: a.x * scale, y: a.y * scale, z: a.z * scale }, true);
+      }
+    };
+
+    clampBody(this.playerBody, PHYSICS_CONFIG.player.maxLinearSpeed, PHYSICS_CONFIG.player.maxAngularSpeed);
+    clampBody(this.ballBody, PHYSICS_CONFIG.ball.maxLinearSpeed, PHYSICS_CONFIG.ball.maxAngularSpeed);
   }
 
   playerState() {
