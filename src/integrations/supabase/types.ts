@@ -14,7 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      leaderboard: {
+        Row: {
+          games: number
+          updated_at: string
+          user_id: string
+          username: string
+          wins: number
+        }
+        Insert: {
+          games?: number
+          updated_at?: string
+          user_id: string
+          username?: string
+          wins?: number
+        }
+        Update: {
+          games?: number
+          updated_at?: string
+          user_id?: string
+          username?: string
+          wins?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leaderboard_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          games: number
+          id: string
+          updated_at: string
+          username: string
+          wins: number
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          games?: number
+          id: string
+          updated_at?: string
+          username?: string
+          wins?: number
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          games?: number
+          id?: string
+          updated_at?: string
+          username?: string
+          wins?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

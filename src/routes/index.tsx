@@ -5,6 +5,7 @@ import { HUD } from "@/components/game/HUD";
 import { useMatch } from "@/components/game/match";
 import { playerId } from "@/hooks/useGameChannel";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
 import { randomRoomCode, readRoomFromUrl, setRoomInUrl, shareLink } from "@/lib/room";
 import { IntroGate } from "@/components/IntroGate";
 import { BlobIcon, ModeIcon } from "@/components/GameIcon";
@@ -87,8 +88,9 @@ function Index() {
 
   const google = async () => {
     setLoadingGoogle(true);
-    await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } });
-    setLoadingGoogle(false);
+    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    if (r.error || !r.redirected) setLoadingGoogle(false);
+    if (!r.error && !r.redirected) { const { data } = await supabase.auth.getSession(); setSession(data.session); }
   };
 
   const logout = async () => { await supabase.auth.signOut(); setSession(null); };
@@ -157,7 +159,7 @@ function Account({ session, google, logout, loading, onBack }: any) { return <Pa
 
 function Panel({ title, subtitle, icon, onBack, children }: any) { return <div className="w-full max-w-xl rounded-[2rem] border-[5px] border-[#241b35] bg-white p-6 text-[#241b35] shadow-[0_12px_0_#241b35]"><div className="mb-6 flex items-start gap-3"><div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-[#ffcf3f] text-3xl">{icon}</div><div className="flex-1"><h2 className="font-display text-3xl">{title}</h2><p className="font-bold text-black/45">{subtitle}</p></div><button onClick={onBack} className="rounded-xl border-3 border-[#241b35] p-2"><X/></button></div>{children}</div>; }
 function SettingRow({ icon, title, description, value, onChange }: any) { return <label className="flex cursor-pointer items-center gap-3 rounded-2xl border-3 border-[#241b35]/10 bg-[#f5f2ff] p-4"><div className="grid size-10 place-items-center rounded-xl bg-white">{icon}</div><div className="flex-1"><div className="font-black">{title}</div><div className="text-xs font-bold text-black/40">{description}</div></div><input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} className="size-5 accent-[#6c5ce7]"/></label>; }
-function MenuButton({ icon, label, active, onClick }: any) { return <button onClick={onClick} className={`hidden items-center gap-2 rounded-2xl border-3 border-[#241b35] px-3 py-2 text-sm font-black shadow-[0_4px_0_#241b35] transition hover:-translate-y-0.5 md:flex ${active ? "bg-[#ffcf3f] text-[#241b35]" : "bg-white/90 text-[#241b35]"}`}>{icon}{label}</button>; }
+function MenuButton({ icon, label, active, onClick }: any) { return <button onClick={onClick} className={`flex items-center gap-2 rounded-2xl border-3 border-[#241b35] px-3 py-2 text-sm font-black shadow-[0_4px_0_#241b35] transition hover:-translate-y-0.5 ${active ? "bg-[#ffcf3f] text-[#241b35]" : "bg-white/90 text-[#241b35]"}`}>{icon}<span className="hidden sm:inline">{label}</span></button>; }
 function Pill({ children }: any) { return <span className="rounded-full border-3 border-[#241b35] bg-white/90 px-3 py-1 text-xs font-black text-[#241b35] shadow-[0_3px_0_#241b35]">{children}</span>; }
 
 async function loadLeaderboard(setter: (rows: Leader[]) => void) { const { data } = await (supabase as any).from("leaderboard").select("user_id,username,wins,games").order("wins", { ascending: false }).order("games", { ascending: false }).limit(50); setter((data ?? []) as Leader[]); }
