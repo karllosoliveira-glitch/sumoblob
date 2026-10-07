@@ -6,6 +6,7 @@ import { playerId, type NetState } from "@/hooks/useGameChannel";
 import { Sumo, colorForId } from "../Sumo";
 import { sfx } from "./sfx";
 import { getSoccerPhysics, type SoccerPhysics } from "./rapier";
+import { physicsSensors } from "./physicsSensors";
 import { TEAMS, ball, fx, hitQueue, match, net, teamOf, useMatch } from "./match";
 import { ACCEL, ARENA_R, BALL_R, FIELD_X, FIELD_Z, SOAP_ACCEL, SOAP_DRAG, DASH_COOLDOWN, DASH_PUSH, DASH_SPEED, DASH_TIME, DRAG, GRAVITY, MAX_SPEED, PLAYER_R, PUSH, RACE_ACCEL, RACE_DRAG, RACE_MAX_SPEED, RACE_LANE_HALF, RACE_X_MIN, RACE_OBSTACLES, STEER_RESPONSE, STOP_RESPONSE, MAX_TURN_RATE, SOAP_STEER_RESPONSE, RACE_CHECKPOINTS, obstacleState, worldTime, spawnAngle } from "./constants";
 
@@ -65,9 +66,9 @@ function PlayerInner({playerRef,localRef,remote,onFall}:{playerRef:React.RefObje
       else if(o.type==="spinner"&&!cd){for(const s of [-1,1]){const ax=st.x+Math.cos(st.angle)*o.r*s,az=st.z-Math.sin(st.angle)*o.r*s,ex=px-ax,ez=pz-az,ed=Math.hypot(ex,ez);if(ed<.45+PLAYER_R){obsCd.current.set(i,.5);const tx2=-Math.sin(st.angle)*s,tz2=-Math.cos(st.angle)*s;vel.current.x+=ex/ed*10+tx2*8;vel.current.z+=ez/ed*10+tz2*8;hopV.current=7;spin.current=16;stunned.current=.45;kick(10);fx.shake=.35;sfx.smack();break}}}
       else if(o.type==="hammer"&&!cd&&d<o.r+PLAYER_R&&hopY.current<1.4){obsCd.current.set(i,.8);const dir=Math.cos(wt*1.7+o.x)>=0?1:-1;vel.current.z+=dir*18;vel.current.x-=3;hopV.current=10;spin.current=20;stunned.current=.6;kick(12);fx.shake=.6;sfx.smack();sfx.scream()}
       else if(o.type==="ramp"&&d<o.r+.4&&grounded&&!cd){obsCd.current.set(i,1);hopV.current=13;vel.current.x+=9;kick(-8);sfx.whoosh()}});
-     const cp=RACE_CHECKPOINTS.filter(x=>pos.current.x>=x).length;if(cp>(localRef.current.cp??0)){localRef.current.cp=cp;sfx.checkpoint()}}
+     const cp=physicsSensors.checkpoint(pos.current.x,pos.current.z,localRef.current.cp??0);if(cp>(localRef.current.cp??0)){localRef.current.cp=cp;sfx.checkpoint()}}
    if(stuckTimer.current>0){stuckTimer.current=Math.max(0,stuckTimer.current-dt*.5)}
-   if(!soccer&&!race&&Math.hypot(pos.current.x,pos.current.z)>ARENA_R-.15){falling.current=true;localRef.current.out=1;vy.current=5;spin.current=(Math.random()-.5)*14;sfx.scream()}
+   if(!soccer&&!race&&physicsSensors.fall(pos.current.x,pos.current.z)){falling.current=true;localRef.current.out=1;vy.current=5;spin.current=(Math.random()-.5)*14;sfx.scream()}
    const tx=THREE.MathUtils.clamp(vel.current.z*.05,-.5,.5),tz=THREE.MathUtils.clamp(-vel.current.x*.05,-.5,.5);tiltX.current+=(tx-tiltX.current)*(1-Math.exp(-10*dt));tiltZ.current+=(tz-tiltZ.current)*(1-Math.exp(-10*dt));spin.current*=Math.exp(-4*dt);yaw.current+=spin.current*dt;
   }else{vy.current+=GRAVITY*dt;pos.current.y+=vy.current*dt;pos.current.addScaledVector(vel.current,dt);if(pos.current.y<-13){localRef.current.falls++;onFall();if(match.get().phase==="fight"){localRef.current.dead=1;return}respawn()}}
   const stiff=180;squashV.current+=(-(squash.current-1)*stiff-squashV.current*9)*dt;squash.current+=squashV.current*dt;const sy=THREE.MathUtils.clamp(squash.current+(dashTimer.current||tackleTimer.current?.2:0),.45,1.8),sxz=1/Math.sqrt(sy);const visualAlpha=1-Math.exp(-24*dt);renderPos.lerp(pos.current,visualAlpha);group.position.copy(renderPos);group.rotation.set(tiltX.current,yaw.current,tiltZ.current,"YXZ");group.scale.set(sxz,sy,sxz);if(soccer)camTarget.set(pos.current.x*.5,15,pos.current.z*.3+15);else if(race)camTarget.set(pos.current.x+5,13,pos.current.z*.15+15);else camTarget.set(pos.current.x*.35,11,pos.current.z*.35+14.5);camera.position.lerp(camTarget,1-Math.exp(-3*dt));camera.lookAt(race?pos.current.x+8:pos.current.x*.3,1.4,race?pos.current.z:pos.current.z*.3);if(fx.shake>.01){camera.position.x+=(Math.random()-.5)*fx.shake;camera.position.y+=(Math.random()-.5)*fx.shake;fx.shake*=Math.exp(-5*dt)}
