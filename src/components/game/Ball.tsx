@@ -1,5 +1,5 @@
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { NetState } from "@/hooks/useGameChannel";
 import type { LocalState } from "./Player";
@@ -18,7 +18,7 @@ function ballTexture() {
 export function Ball({ playerRef, localRef, remote }: { playerRef: React.RefObject<THREE.Group | null>; localRef: React.RefObject<LocalState>; remote: React.RefObject<Map<string, NetState>> }) {
   const ref = useRef<THREE.Mesh>(null), tex = useMemo(() => ballTexture(), []);
   const lastSeq = useRef(-1), sendAcc = useRef(0), hitCd = useRef(new Map<string, number>()), q = useMemo(() => new THREE.Quaternion(), []), axis = useMemo(() => new THREE.Vector3(), []);
-  const spin = useRef(0), height = useRef(BALL_R), vy = useRef(0), lastKick = useRef(0);\n  const rapier = useRef<SoccerPhysics|null>(null);\n  useMemo(()=>{getSoccerPhysics().then(p=>{rapier.current=p});return null},[]);
+  const spin = useRef(0), height = useRef(BALL_R), vy = useRef(0), lastKick = useRef(0);\n  const rapier = useRef<SoccerPhysics|null>(null);\n  useEffect(()=>{let alive=true;getSoccerPhysics().then(p=>{if(alive)rapier.current=p});return()=>{alive=false}},[]);
   const reset = () => { ball.x = ball.z = ball.vx = ball.vz = 0; ballNet.x = ballNet.z = ballNet.vx = ballNet.vz = 0; spin.current = 0; height.current = BALL_R; vy.current = 0; };
 
   useFrame((_, raw) => {
