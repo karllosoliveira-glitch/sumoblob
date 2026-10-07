@@ -6,7 +6,7 @@ import { playerId, type NetState } from "@/hooks/useGameChannel";
 import { Sumo, colorForId } from "../Sumo";
 import { sfx } from "./sfx";
 import { TEAMS, ball, fx, hitQueue, match, net, teamOf, useMatch } from "./match";
-import { ACCEL, ARENA_R, BALL_R, FIELD_X, FIELD_Z, SOAP_ACCEL, SOAP_DRAG, DASH_COOLDOWN, DASH_PUSH, DASH_SPEED, DASH_TIME, DRAG, GRAVITY, MAX_SPEED, PLAYER_R, PUSH, RACE_ACCEL, RACE_DRAG, RACE_MAX_SPEED, RACE_LANE_HALF, RACE_X_MIN, RACE_OBSTACLES, RACE_CHECKPOINTS, obstacleState, worldTime, spawnAngle } from "./constants";
+import { ACCEL, ARENA_R, BALL_R, FIELD_X, FIELD_Z, SOAP_ACCEL, SOAP_DRAG, DASH_COOLDOWN, DASH_PUSH, DASH_SPEED, DASH_TIME, DRAG, GRAVITY, MAX_SPEED, PLAYER_R, PUSH, RACE_ACCEL, RACE_DRAG, RACE_MAX_SPEED, RACE_LANE_HALF, RACE_X_MIN, RACE_OBSTACLES, STEER_RESPONSE, STOP_RESPONSE, MAX_TURN_RATE, SOAP_STEER_RESPONSE, RACE_CHECKPOINTS, obstacleState, worldTime, spawnAngle } from "./constants";
 
 export type LocalState = { dash:number;out:number;falls:number;dead:number;vx:number;vz:number;kick:number;tackle:number;cp?:number };
 const tmp=new THREE.Vector3(),camTarget=new THREE.Vector3();
@@ -21,7 +21,30 @@ function PlayerInner({playerRef,localRef,remote,onFall}:{playerRef:React.RefObje
   if(localRef.current.dead){group.visible=false;return}group.visible=true;
   if(!falling.current){while(hitQueue.length){const h=hitQueue.shift()!;vel.current.x+=h.x*h.power;vel.current.z+=h.z*h.power;hopV.current=h.dash?8:4;spin.current=(Math.random()-.5)*(h.dash?20:8);stunned.current=h.dash?.45:.2;kick(h.dash?10:6);fx.shake=Math.max(fx.shake,h.dash?.5:.2);sfx.boing(h.dash?1.2:.9)}
    const ix=(k.has("KeyD")||k.has("ArrowRight")?1:0)-(k.has("KeyA")||k.has("ArrowLeft")?1:0),iz=(k.has("KeyS")||k.has("ArrowDown")?1:0)-(k.has("KeyW")||k.has("ArrowUp")?1:0);const grounded=hopY.current<=.001,control=m.phase==="countdown"?0:stunned.current>0?.15:grounded?1:.35;
-   if((ix||iz)&&m.phase!=="countdown"){tmp.set(ix,0,iz).normalize();const acc=race?RACE_ACCEL:soccer?SOAP_ACCEL:ACCEL;vel.current.addScaledVector(tmp,acc*control*dt);if(stunned.current===0)yaw.current=Math.atan2(tmp.x,tmp.z);if(grounded){stepT.current+=dt;if(stepT.current>(race?.1:soccer?.13:.18)){stepT.current=0;sfx.step();hopV.current=race?1.4:soccer?1.7:2.2}}}
+   const hasInput=ix!==0||iz!==0;
+   if(hasInput&&m.phase!=="countdown"){
+     tmp.set(ix,0,iz).normalize();
+     const acc=race?RACE_ACCEL:soccer?SOAP_ACCEL:ACCEL;
+     const response=race?STEER_RESPONSE:soccer?SOAP_STEER_RESPONSE:STEER_RESPONSE;
+     const targetX=tmp.x*(race?RACE_MAX_SPEED:soccer?11:MAX_SPEED);
+     const targetZ=tmp.z*(race?RACE_MAX_SPEED:soccer?11:MAX_SPEED);
+     const blend=1-Math.exp(-response*control*dt);
+     vel.current.x=THREE.MathUtils.lerp(vel.current.x,targetX,blend);
+     vel.current.z=THREE.MathUtils.lerp(vel.current.z,targetZ,blend);
+     vel.current.addScaledVector(tmp,acc*0.18*control*dt);
+     if(stunned.current===0){
+       const desiredYaw=Math.atan2(tmp.x,tmp.z);
+       let turn=desiredYaw-yaw.current;
+       while(turn>Math.PI)turn-=Math.PI*2;
+       while(turn<-Math.PI)turn+=Math.PI*2;
+       yaw.current+=THREE.MathUtils.clamp(turn,-MAX_TURN_RATE*dt,MAX_TURN_RATE*dt);
+     }
+     if(grounded){stepT.current+=dt;if(stepT.current>(race?.1:soccer?.13:.18)){stepT.current=0;sfx.step();hopV.current=race?1.4:soccer?1.7:2.2}}
+   } else if(!hasInput && m.phase!=="countdown"){
+     const stop=1-Math.exp(-STOP_RESPONSE*dt);
+     vel.current.x=THREE.MathUtils.lerp(vel.current.x,0,stop);
+     vel.current.z=THREE.MathUtils.lerp(vel.current.z,0,stop);
+   }
    const space=k.has("Space"),ps=space&&!lastSpace.current,shift=k.has("ShiftLeft")||k.has("ShiftRight"),pShift=shift&&!lastShift.current;lastSpace.current=space;lastShift.current=shift;
    if(m.phase==="fight"&&!stunned.current){if(soccer&&pShift){tackleTimer.current=.42;dashTimer.current=.35;vel.current.addScaledVector(tmp.set(Math.sin(yaw.current),0,Math.cos(yaw.current)),10);kick(13);sfx.whoosh()}else if(ps){cooldown.current=soccer?.42:race?.5:DASH_COOLDOWN;dashTimer.current=soccer?.18:race?.3:DASH_TIME;tmp.set(Math.sin(yaw.current),0,Math.cos(yaw.current));vel.current.addScaledVector(tmp,soccer?4.8:race?5.5:DASH_SPEED);if(soccer){hopV.current=3.4;kickFx.current=.24;kick(9);sfx.smack()}else sfx.whoosh()}}
     if(!soccer&&pShift&&grounded&&m.phase!=="countdown"&&!stunned.current){hopV.current=race?10:9;kick(-7);sfx.boing(.7)}
