@@ -1,3 +1,4 @@
+import { Flag } from "lucide-react";
 import { useEffect, useState } from "react";
 import type * as THREE from "three";
 import { playerId, type NetState } from "@/hooks/useGameChannel";
@@ -22,7 +23,7 @@ export function RaceHUD({ playerRef, localRef, remote }: { playerRef: React.RefO
       <div className="relative h-4 flex-1 rounded-full border-2 border-ink bg-muted">
         {RACE_CHECKPOINTS.map((x) => <span key={x} className="absolute top-0 h-full w-0.5 bg-ink/40" style={{ left: `${pct(x)}%` }} />)}
         {list.map((p) => <span key={p.id} className={`absolute -top-1.5 h-6 w-6 -translate-x-1/2 rounded-full border-2 border-ink ${p.id === playerId ? "z-10 bg-primary" : "bg-secondary"}`} style={{ left: `${pct(p.x)}%` }} />)}
-        <span className="absolute -right-1 -top-2 text-lg">🏁</span>
+        <span className="absolute -right-1 -top-2 text-lg"><Flag size={18} /></span>
       </div>
       <span className="text-xs font-black text-muted-foreground">CP {localRef.current.cp ?? 0}/{RACE_CHECKPOINTS.length}</span>
     </div>
