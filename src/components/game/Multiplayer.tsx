@@ -72,7 +72,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
       onScores(Object.fromEntries([...remote.current.values()].map((r) => [r.id, r.falls])));
     },
     onHit: (h) => { hitQueue.push(h); },
-    onInput: (i) => { if (net.isHost) (net as any).remoteInputs?.set(i.id, i); },
+    onInput: () => {},
     onMatch: (mm) => { if (!net.isHost) applyMatch(mm); },
     onVote: (v) => { if (net.isHost) recordVote(v.from, v.mode); },
     onBall: (b) => { if (net.isHost) return; if (b.authorityId && b.authorityId !== authority.current) { authority.current = b.authorityId; lastBallSeq.current = -1; } if ((b.seq ?? 0) <= lastBallSeq.current) return; lastBallSeq.current = b.seq ?? 0; Object.assign(ballNet, b, { at: performance.now(), fresh: true }); },
