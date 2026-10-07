@@ -1,6 +1,6 @@
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas } from "@react-three/fiber";
 import { ContactShadows, PerformanceMonitor } from "@react-three/drei";
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { NetState } from "@/hooks/useGameChannel";
 import { Arena } from "./Arena";
@@ -16,10 +16,16 @@ import { PHYSICS_CONFIG, physicsStepStats } from "@/config/physicsConfig";
 
 function PhysicsDebugOverlay() {
   const ref = useRef<HTMLDivElement>(null);
-  useFrame(() => {
-    if (!ref.current || !PHYSICS_CONFIG.debug) return;
-    ref.current.textContent = `PHYSICS | fixed: ${physicsStepStats.fixedDt.toFixed(4)}s | steps: ${physicsStepStats.subSteps} | acc: ${physicsStepStats.accumulator.toFixed(4)}`;
-  });
+  useEffect(() => {
+    if (!PHYSICS_CONFIG.debug) return;
+    const update = () => {
+      if (!ref.current) return;
+      ref.current.textContent = `PHYSICS | fixed: ${physicsStepStats.fixedDt.toFixed(4)}s | steps: ${physicsStepStats.subSteps} | acc: ${physicsStepStats.accumulator.toFixed(4)}`;
+    };
+    update();
+    const id = window.setInterval(update, 100);
+    return () => window.clearInterval(id);
+  }, []);
   if (!PHYSICS_CONFIG.debug) return null;
   return <div ref={ref} className="pointer-events-none absolute left-2 top-2 z-50 rounded bg-black/70 px-2 py-1 font-mono text-[10px] text-white" />;
 }
