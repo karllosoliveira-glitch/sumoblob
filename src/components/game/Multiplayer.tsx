@@ -6,7 +6,6 @@ import { playerId, useGameChannel, type NetState } from "@/hooks/useGameChannel"
 import { Sumo, colorForId } from "../Sumo";
 import type { LocalState } from "./Player";
 import { COUNTDOWN_MS, FINAL_MS, GOALS_TO_WIN, ROUND_END_MS, ROUNDS, TEAMS, VOTE_MS, ballNet, fx, hitQueue, lobby, match, net, SOCCER_MS, teamOf, useMatch, type MatchState, type Mode } from "./match";
-import { RACE_X_FINISH } from "./constants";
 import { physicsSensors } from "./physicsSensors";
 import { sfx } from "./sfx";
 
