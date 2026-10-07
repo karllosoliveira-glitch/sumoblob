@@ -70,7 +70,7 @@ export function useMatch() {
 export type Hit = { from: string; x: number; z: number; power: number; dash: number };
 export const hitQueue: Hit[] = [];
 
-export type BallMsg = { x: number; z: number; vx: number; vz: number };
+export type BallMsg = { x: number; z: number; vx: number; vz: number; seq?: number; authorityId?: string; at?: number };
 export const ball = { x: 0, z: 0, vx: 0, vz: 0 };
 export const ballNet = { x: 0, z: 0, vx: 0, vz: 0, at: 0, fresh: false };
 
@@ -78,6 +78,7 @@ export const net: {
   hit: (m: import("@/hooks/useGameChannel").HitMsg) => void;
   vote: (mode: Mode) => void;
   ball: (b: BallMsg) => void;
+  input: (i: { id: string; seq: number; moveX: number; moveZ: number; dash: number; tackle: number; kick: number; at: number }) => void;
   goal: (team: "A" | "B") => void;
   isHost: boolean;
   ids: string[];
@@ -85,6 +86,7 @@ export const net: {
   hit: () => {},
   vote: () => {},
   ball: () => {},
+  input: () => {},
   goal: () => {},
   isHost: true,
   ids: [],
