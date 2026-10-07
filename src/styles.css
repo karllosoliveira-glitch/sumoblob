@@ -163,3 +163,6 @@
   }
 
 }
+
+html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
+canvas { touch-action: none; }

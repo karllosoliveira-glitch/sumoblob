@@ -20,7 +20,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" },
       { title: "Sumô Bobão — Party Game de Blobs" },
       { name: "description", content: "Sumô 3D online e atrapalhado: lute, escorregue e corra com seus amigos." },
       { name: "author", content: "Sumô Bobão" },
