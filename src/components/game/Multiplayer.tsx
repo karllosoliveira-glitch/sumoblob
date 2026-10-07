@@ -7,6 +7,7 @@ import { Sumo, colorForId } from "../Sumo";
 import type { LocalState } from "./Player";
 import { COUNTDOWN_MS, FINAL_MS, GOALS_TO_WIN, ROUND_END_MS, ROUNDS, TEAMS, VOTE_MS, ballNet, fx, hitQueue, lobby, match, net, SOCCER_MS, teamOf, useMatch, type MatchState, type Mode } from "./match";
 import { RACE_X_FINISH } from "./constants";
+import { physicsSensors } from "./physicsSensors";
 import { sfx } from "./sfx";
 
 const NET_TICK = 1 / 8;
@@ -120,7 +121,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
       if (cur.startedAt && now - cur.startedAt > SOCCER_MS) go({ phase: "final", winner: a > b ? "A" : b > a ? "B" : null });
       else if (pendingGoal.current) { const t = pendingGoal.current; pendingGoal.current = null; const points = { ...cur.points, [t]: (cur.points[t] ?? 0) + 1 }; go({ phase: "roundEnd", winner: t, points }); }
     } else if (cur.phase === "fight" && cur.mode === "corrida") {
-      const finishers = all.filter((id) => id === playerId ? (playerRef.current?.position.x ?? -999) >= RACE_X_FINISH : (remote.current.get(id)?.x ?? -999) >= RACE_X_FINISH);
+      const finishers = all.filter((id) => id === playerId ? physicsSensors.finish(playerRef.current?.position.x ?? -999, playerRef.current?.position.z ?? 999) : physicsSensors.finish(remote.current.get(id)?.x ?? -999, remote.current.get(id)?.z ?? 999));
       if (finishers.length) {
         const w = finishers[0] as string;
         const points = { ...cur.points, [w]: (cur.points[w] ?? 0) + 1 };
