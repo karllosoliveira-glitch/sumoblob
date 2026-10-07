@@ -25,7 +25,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
   const authority = useRef("");
   const hostWasHost = useRef(false);
   const votesDirty = useRef(false);
-  const last = useRef({ x: 0, y: 0, z: 0, ry: 0, dash: 0, out: 0, falls: 0, dead: 0, tackle: 0, kick: 0, at: -1 });
+  const last = useRef({ x: 0, y: 0, z: 0, ry: 0, dash: 0, out: 0, falls: 0, dead: 0, tackle: 0, kick: 0, at: -1, inputAt: 0 });
   const m = useMatch();
   const allIds = [playerId, ...ids];
 
@@ -84,8 +84,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     const cur = match.get();
     if (!net.isHost && cur.phase === "vote") match.set({ ...cur, votes: { ...cur.votes, [playerId]: mode } });
   };
-  net.ball = (b) => { channelRef.current?.send({ type: "broadcast", event: "ball", payload: { ...b, authorityId: playerId, seq: ++lastBallSeq.current, at: Date.now() } }); };
-  net.goal = (team) => { if (net.isHost) pendingGoal.current = team; };
+  net.ball = (b) => { channelRef.current?.send({ type: "broadcast", event: "ball", payload: { ...b, authorityId: playerId, seq: ++lastBallSeq.current, at: Date.now() } }); };\n  net.input = (i) => { channelRef.current?.send({ type: "broadcast", event: "input", payload: i }); };\n  net.goal = (team) => { if (net.isHost) pendingGoal.current = team; };
 
   const hostTick = (now: number) => {
     const all = [playerId, ...roster.current].sort();
@@ -172,13 +171,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     }
     hostAcc.current += delta;
     if (hostAcc.current > 0.1) { hostAcc.current = 0; hostTick(Date.now()); }
-    const input = (window as any).__sumoblobInput as { moveX:number; moveZ:number; dash:number; tackle:number; kick:number } | undefined;
-    if (channelRef.current && input) {
-      const now = Date.now();
-      if (now - (last.current.inputAt ?? 0) >= 50) {
-        last.current.inputAt = now;
-        channelRef.current.send({ type: "broadcast", event: "input", payload: { id: playerId, seq: ++inputSeq.current, ...input, at: now } });
-      }
+
     }
     acc.current += delta;
     if (acc.current < NET_TICK) return;
