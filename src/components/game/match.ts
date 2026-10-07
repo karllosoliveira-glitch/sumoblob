@@ -24,9 +24,9 @@ export const ROUND_END_MS = 3500;
 export const FINAL_MS = 7000;
 
 export const MODES: Record<Mode, { label: string; emoji: string; hint: string }> = {
-  sumo: { label: "Sumô", emoji: "🥋", hint: "Último de pé ganha a rodada" },
-  futebol: { label: "Futebol de sabão", emoji: "⚽", hint: "Empurre a bola pro gol do outro time · 3 gols vence" },
-  corrida: { label: "Corrida Maluca", emoji: "🏁", hint: "Desvie dos obstáculos e seja o primeiro a cruzar a chegada!" },
+  sumo: { label: "Sumô", hint: "Último de pé ganha a rodada" },
+  futebol: { label: "Futebol de sabão", hint: "Empurre a bola pro gol do outro time · 3 gols vence" },
+  corrida: { label: "Corrida Maluca", hint: "Desvie dos obstáculos e seja o primeiro a cruzar a chegada!" },
 };
 
 export const TEAMS = {

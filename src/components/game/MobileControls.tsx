@@ -1,10 +1,11 @@
 import { useRef } from "react";
+import { ArrowBigUp, Footprints, Volleyball, Zap } from "lucide-react";
 
 function setKey(code: string, pressed: boolean) {
   window.dispatchEvent(new CustomEvent("sumo:key", { detail: { code, pressed } }));
 }
 
-function HoldButton({ code, label, className = "" }: { code: string; label: string; className?: string }) {
+function HoldButton({ code, label, className = "" }: { code: string; label: React.ReactNode; className?: string }) {
   const active = useRef(false);
   const press = (e: React.PointerEvent) => {
     e.preventDefault();
@@ -18,7 +19,7 @@ function HoldButton({ code, label, className = "" }: { code: string; label: stri
     active.current = false;
     setKey(code, false);
   };
-  return <button type="button" aria-label={label} onPointerDown={press} onPointerUp={release} onPointerCancel={release} onPointerLeave={release} className={`touch-none select-none rounded-full border-4 border-ink bg-card/90 font-display text-2xl text-foreground shadow-chunky backdrop-blur-sm active:scale-90 ${className}`}>{label}</button>;
+  return <button type="button" aria-label={typeof label === "string" ? label : code} onPointerDown={press} onPointerUp={release} onPointerCancel={release} onPointerLeave={release} className={`touch-none select-none rounded-full border-4 border-ink bg-card/90 grid place-items-center font-display text-2xl text-foreground shadow-chunky backdrop-blur-sm active:scale-90 ${className}`}>{label}</button>;
 }
 
 export function MobileControls({ soccer }: { soccer: boolean }) {
@@ -54,10 +55,10 @@ export function MobileControls({ soccer }: { soccer: boolean }) {
       <div data-stick className="absolute left-1/2 top-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-ink bg-card/90 shadow-chunky transition-transform" />
     </div>
     <div className="absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))] flex items-end gap-3">
-      <HoldButton code="ShiftLeft" label={soccer ? "🛝" : "⤴️"} className="size-20 bg-secondary/95" />
-      <HoldButton code="Space" label={soccer ? "⚽" : "💥"} className="size-24 bg-primary/95 text-primary-foreground" />
+      <HoldButton code="ShiftLeft" label={soccer ? <Footprints size={32}/> : <ArrowBigUp size={34}/>} className="size-20 bg-secondary/95" />
+      <HoldButton code="Space" label={soccer ? <Volleyball size={40}/> : <Zap size={40}/>} className="size-24 bg-primary/95 text-primary-foreground" />
     </div>
     <div className="absolute bottom-40 left-5 rounded-full border-2 border-white/70 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-sm">arraste para correr</div>
-    {soccer && <div className="absolute bottom-36 right-7 flex gap-2 text-[10px] font-black uppercase tracking-wider text-white"><span>🛝 carrinho</span><span>⚽ chute/toque</span></div>}
+    {soccer && <div className="absolute bottom-36 right-7 flex gap-2 text-[10px] font-black uppercase tracking-wider text-white"><span>carrinho</span><span>chute/toque</span></div>}
   </div>;
 }
