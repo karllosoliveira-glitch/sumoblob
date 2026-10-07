@@ -23,7 +23,7 @@ function PlayerInner({playerRef,localRef,remote,onFall}:{playerRef:React.RefObje
   if(localRef.current.dead){group.visible=false;return}group.visible=true;
   const simulateStep = (dt:number) => {
    if(!falling.current){while(hitQueue.length){const h=hitQueue.shift()!;vel.current.x+=h.x*h.power;vel.current.z+=h.z*h.power;hopV.current=h.dash?8:4;spin.current=(Math.random()-.5)*(h.dash?20:8);stunned.current=h.dash?.45:.2;kick(h.dash?10:6);fx.shake=Math.max(fx.shake,h.dash?.5:.2);sfx.boing(h.dash?1.2:.9)}
-   const ix=(k.has("KeyD")||k.has("ArrowRight")?1:0)-(k.has("KeyA")||k.has("ArrowLeft")?1:0),iz=(k.has("KeyS")||k.has("ArrowDown")?1:0)-(k.has("KeyW")||k.has("ArrowUp")?1:0);const grounded=hopY.current<=.001,control=m.phase==="countdown"?0:stunned.current>0?.15:grounded?1:.35;
+   const ix=(k.has("KeyD")||k.has("ArrowRight")?1:0)-(k.has("KeyA")||k.has("ArrowLeft")?1:0),iz=(k.has("KeyS")||k.has("ArrowDown")?1:0)-(k.has("KeyW")||k.has("ArrowUp")?1:0);\n   net.input({ id: playerId, seq: Math.floor(performance.now()*20), moveX: ix, moveZ: iz, dash: dashTimer.current>0?1:0, tackle: tackleTimer.current>0?1:0, kick: kickFx.current>0?1:0, at: Date.now() });const grounded=hopY.current<=.001,control=m.phase==="countdown"?0:stunned.current>0?.15:grounded?1:.35;
    const hasInput=ix!==0||iz!==0;
    if(hasInput&&m.phase!=="countdown"){
      tmp.set(ix,0,iz).normalize();
