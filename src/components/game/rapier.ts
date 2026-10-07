@@ -20,7 +20,7 @@ export class SoccerPhysics {
   }
 
   private constructor(R: typeof RAPIER, fieldX: number, fieldZ: number, playerRadius: number, ballRadius: number) {
-    this.world = new R.World({ x: 0, y: -22, z: 0 });
+    this.world = new R.World({ x: 0, y: -22, z: 0 });\n    this.world.integrationParameters.dt = 1 / 60;\n    this.world.integrationParameters.numSolverIterations = 8;
 
     const floor = this.world.createRigidBody(R.RigidBodyDesc.fixed().setTranslation(0, -0.5, 0));
     this.world.createCollider(
@@ -35,7 +35,7 @@ export class SoccerPhysics {
         .setTranslation(0, playerRadius + 0.03, 0)
         .setLinearDamping(2.2)
         .setAngularDamping(8)
-        .lockRotations(),
+        .lockRotations()\n        .setCcdEnabled(true),
     );
     this.playerBody.setAdditionalMass(1.8, true);
     this.world.createCollider(
@@ -47,7 +47,7 @@ export class SoccerPhysics {
       R.RigidBodyDesc.dynamic()
         .setTranslation(0, ballRadius + 0.03, 0)
         .setLinearDamping(0.18)
-        .setAngularDamping(0.08),
+        .setAngularDamping(0.08)\n        .setCcdEnabled(true),
     );
     this.ballBody.setAdditionalMass(0.55, true);
     this.world.createCollider(
