@@ -23,7 +23,7 @@ export const COUNTDOWN_MS = 3000;
 export const ROUND_END_MS = 3500;
 export const FINAL_MS = 7000;
 
-export const MODES: Record<Mode, { label: string; emoji: string; hint: string }> = {
+export const MODES: Record<Mode, { label: string; hint: string }> = {
   sumo: { label: "Sumô", hint: "Último de pé ganha a rodada" },
   futebol: { label: "Futebol de sabão", hint: "Empurre a bola pro gol do outro time · 3 gols vence" },
   corrida: { label: "Corrida Maluca", hint: "Desvie dos obstáculos e seja o primeiro a cruzar a chegada!" },
