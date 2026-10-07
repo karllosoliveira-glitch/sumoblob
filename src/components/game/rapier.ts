@@ -13,6 +13,7 @@ export class SoccerPhysics {
   readonly ballBody: RAPIER.RigidBody;
   private ready = false;
   private accumulator = 0;
+  private readonly goalSensors = new Map<"A" | "B", RAPIER.Collider>();
 
   static async create(fieldX: number, fieldZ: number, playerRadius: number, ballRadius: number) {
     const R = await initRapier();
@@ -61,6 +62,26 @@ export class SoccerPhysics {
       R.ColliderDesc.ball(ballRadius).setCollisionGroups(PHYSICS_CONFIG.collision.ball | ((PHYSICS_CONFIG.collision.world | PHYSICS_CONFIG.collision.player) << 16)).setFriction(0.32).setRestitution(0.78).setDensity(0.55),
       this.ballBody,
     );
+
+    const createGoalSensor = (side: "A" | "B") => {
+      const x = side === "A" ? fieldX + 1.1 : -fieldX - 1.1;
+      const body = this.world.createRigidBody(R.RigidBodyDesc.fixed().setTranslation(x, 1.25, 0));
+      const sensor = this.world.createCollider(
+        R.ColliderDesc.cuboid(0.65, 1.35, 2.35)
+          .setSensor(true)
+          .setCollisionGroups(PHYSICS_CONFIG.collision.sensor | (PHYSICS_CONFIG.collision.ball << 16)),
+        body,
+      );
+      this.goalSensors.set(side, sensor);
+    };
+    createGoalSensor("A");
+    createGoalSensor("B");
+  }
+
+  isBallInsideGoal(side: "A" | "B") {
+    const sensor = this.goalSensors.get(side);
+    if (!sensor) return false;
+    return this.world.intersectionPair(sensor.handle, this.ballBody.collider(0)?.handle ?? -1);
   }
 
   resetPlayer(x: number, z: number, y = 0.92) {
