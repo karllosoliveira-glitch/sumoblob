@@ -49,13 +49,13 @@ export function MobileControls({ soccer }: { soccer: boolean }) {
   };
   const end = (e: React.PointerEvent) => { e.preventDefault(); if (activePointer.current !== e.pointerId) return; activePointer.current = null; clear(); const stick = joystick.current?.querySelector("[data-stick]") as HTMLElement | null; if (stick) stick.style.transform = "translate(0,0)"; };
 
-  return <div className="pointer-events-none fixed inset-0 z-30 md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-    <div ref={joystick} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} className="pointer-events-auto absolute bottom-5 left-4 size-36 touch-none rounded-full border-4 border-white/70 bg-black/20 shadow-2xl backdrop-blur-sm">
+  return <div className="pointer-events-none fixed inset-0 z-30 [@media(hover:hover)_and_(pointer:fine)]:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)", paddingLeft: "env(safe-area-inset-left)", paddingRight: "env(safe-area-inset-right)" }}>
+    <div ref={joystick} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} className="pointer-events-auto absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-[calc(1rem+env(safe-area-inset-left))] size-36 touch-none rounded-full border-4 border-white/70 bg-black/20 shadow-2xl backdrop-blur-sm">
       <div data-stick className="absolute left-1/2 top-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-ink bg-card/90 shadow-chunky transition-transform" />
     </div>
-    <div className="absolute bottom-5 right-4 flex items-end gap-3">
-      <HoldButton code="ShiftLeft" label="🛝" className="size-20 bg-secondary/95" />
-      <HoldButton code="Space" label="⚽" className="size-24 bg-primary/95 text-primary-foreground" />
+    <div className="absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))] flex items-end gap-3">
+      <HoldButton code="ShiftLeft" label={soccer ? "🛝" : "⤴️"} className="size-20 bg-secondary/95" />
+      <HoldButton code="Space" label={soccer ? "⚽" : "💥"} className="size-24 bg-primary/95 text-primary-foreground" />
     </div>
     <div className="absolute bottom-40 left-5 rounded-full border-2 border-white/70 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-sm">arraste para correr</div>
     {soccer && <div className="absolute bottom-36 right-7 flex gap-2 text-[10px] font-black uppercase tracking-wider text-white"><span>🛝 carrinho</span><span>⚽ chute/toque</span></div>}
