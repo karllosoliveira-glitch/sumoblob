@@ -20,6 +20,10 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
   const hostAcc = useRef(0);
   const lastMatchSend = useRef(0);
   const pendingGoal = useRef<"A" | "B" | null>(null);
+  const inputSeq = useRef(0);
+  const lastBallSeq = useRef(-1);
+  const authority = useRef("");
+  const hostWasHost = useRef(false);
   const votesDirty = useRef(false);
   const last = useRef({ x: 0, y: 0, z: 0, ry: 0, dash: 0, out: 0, falls: 0, dead: 0, tackle: 0, kick: 0, at: -1 });
   const m = useMatch();
@@ -67,9 +71,10 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
       onScores(Object.fromEntries([...remote.current.values()].map((r) => [r.id, r.falls])));
     },
     onHit: (h) => { hitQueue.push(h); },
+    onInput: (i) => { if (net.isHost) (net as any).remoteInputs?.set(i.id, i); },
     onMatch: (mm) => { if (!net.isHost) applyMatch(mm); },
     onVote: (v) => { if (net.isHost) recordVote(v.from, v.mode); },
-    onBall: (b) => { if (net.isHost) return; Object.assign(ballNet, b, { at: performance.now(), fresh: true }); },
+    onBall: (b) => { if (net.isHost) return; if (b.authorityId && b.authorityId !== authority.current) { authority.current = b.authorityId; lastBallSeq.current = -1; } if ((b.seq ?? 0) <= lastBallSeq.current) return; lastBallSeq.current = b.seq ?? 0; Object.assign(ballNet, b, { at: performance.now(), fresh: true }); },
   });
 
   net.hit = (msg) => { channelRef.current?.send({ type: "broadcast", event: "hit", payload: msg }); };
@@ -79,13 +84,13 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     const cur = match.get();
     if (!net.isHost && cur.phase === "vote") match.set({ ...cur, votes: { ...cur.votes, [playerId]: mode } });
   };
-  net.ball = (b) => { channelRef.current?.send({ type: "broadcast", event: "ball", payload: b }); };
-  net.goal = (team) => { pendingGoal.current = team; };
+  net.ball = (b) => { channelRef.current?.send({ type: "broadcast", event: "ball", payload: { ...b, authorityId: playerId, seq: ++lastBallSeq.current, at: Date.now() } }); };
+  net.goal = (team) => { if (net.isHost) pendingGoal.current = team; };
 
   const hostTick = (now: number) => {
     const all = [playerId, ...roster.current].sort();
     net.ids = all;
-    net.isHost = all[0] === playerId;
+    const wasHost = net.isHost;\n    net.isHost = all[0] === playerId;\n    if (net.isHost && !wasHost) { authority.current = playerId; lastBallSeq.current = 0; }
     if (!net.isHost) return;
     const cur = match.get();
     const elapsed = now - cur.phaseAt;
@@ -167,6 +172,14 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     }
     hostAcc.current += delta;
     if (hostAcc.current > 0.1) { hostAcc.current = 0; hostTick(Date.now()); }
+    const input = (window as any).__sumoblobInput as { moveX:number; moveZ:number; dash:number; tackle:number; kick:number } | undefined;
+    if (channelRef.current && input) {
+      const now = Date.now();
+      if (now - (last.current.inputAt ?? 0) >= 50) {
+        last.current.inputAt = now;
+        channelRef.current.send({ type: "broadcast", event: "input", payload: { id: playerId, seq: ++inputSeq.current, ...input, at: now } });
+      }
+    }
     acc.current += delta;
     if (acc.current < NET_TICK) return;
     acc.current = 0;
