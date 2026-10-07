@@ -8,7 +8,7 @@ import { sfx } from "./sfx";
 import { getSoccerPhysics, type SoccerPhysics } from "./rapier";
 import { physicsSensors } from "./physicsSensors";
 import { TEAMS, ball, fx, hitQueue, match, net, teamOf, useMatch } from "./match";
-import { ACCEL, ARENA_R, BALL_R, FIELD_X, FIELD_Z, SOAP_ACCEL, SOAP_DRAG, DASH_COOLDOWN, DASH_PUSH, DASH_SPEED, DASH_TIME, DRAG, GRAVITY, MAX_SPEED, PLAYER_R, PUSH, RACE_ACCEL, RACE_DRAG, RACE_MAX_SPEED, RACE_LANE_HALF, RACE_X_MIN, RACE_OBSTACLES, STEER_RESPONSE, STOP_RESPONSE, MAX_TURN_RATE, SOAP_STEER_RESPONSE, RACE_CHECKPOINTS, obstacleState, worldTime, spawnAngle } from "./constants";
+import { ACCEL, ARENA_R, BALL_R, FIELD_X, FIELD_Z, SOAP_ACCEL, SOAP_DRAG, DASH_COOLDOWN, DASH_PUSH, DASH_SPEED, DASH_TIME, DRAG, GRAVITY, MAX_SPEED, PLAYER_R, PUSH, RACE_ACCEL, RACE_DRAG, RACE_MAX_SPEED, RACE_LANE_HALF, RACE_X_MIN, RACE_OBSTACLES, STEER_RESPONSE, STOP_RESPONSE, MAX_TURN_RATE, SOAP_STEER_RESPONSE, obstacleState, worldTime, spawnAngle } from "./constants";
 
 export type LocalState = { dash:number;out:number;falls:number;dead:number;vx:number;vz:number;kick:number;tackle:number;cp?:number };
 const tmp=new THREE.Vector3(),camTarget=new THREE.Vector3(),renderPos=new THREE.Vector3();
