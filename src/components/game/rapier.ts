@@ -81,7 +81,8 @@ export class SoccerPhysics {
   isBallInsideGoal(side: "A" | "B") {
     const sensor = this.goalSensors.get(side);
     if (!sensor) return false;
-    return this.world.intersectionPair(sensor.handle, this.ballBody.collider(0)?.handle ?? -1);
+    const ballCollider = this.ballBody.collider(0);
+    return !!sensor && !!ballCollider && this.world.intersectionPair(sensor, ballCollider);
   }
 
   resetPlayer(x: number, z: number, y = 0.92) {

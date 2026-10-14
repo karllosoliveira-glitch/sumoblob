@@ -26,7 +26,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
   const authority = useRef("");
   const hostWasHost = useRef(false);
   const votesDirty = useRef(false);
-  const last = useRef({ x: 0, y: 0, z: 0, ry: 0, dash: 0, out: 0, falls: 0, dead: 0, tackle: 0, kick: 0, at: -1, inputAt: 0 });
+  const last = useRef({ x: 0, y: 0, z: 0, ry: 0, dash: 0, out: 0, falls: 0, dead: 0, tackle: 0, kick: 0, at: -1 });
   const m = useMatch();
   const allIds = [playerId, ...ids];
 
@@ -85,12 +85,16 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     const cur = match.get();
     if (!net.isHost && cur.phase === "vote") match.set({ ...cur, votes: { ...cur.votes, [playerId]: mode } });
   };
-  net.ball = (b) => { channelRef.current?.send({ type: "broadcast", event: "ball", payload: { ...b, authorityId: playerId, seq: ++lastBallSeq.current, at: Date.now() } }); };\n  net.input = (i) => { const now = Date.now(); if (now - lastInputSend.current < 50) return; lastInputSend.current = now; channelRef.current?.send({ type: "broadcast", event: "input", payload: i }); };\n  net.goal = (team) => { if (net.isHost) pendingGoal.current = team; };
+  net.ball = (b) => { channelRef.current?.send({ type: "broadcast", event: "ball", payload: { ...b, authorityId: playerId, seq: ++lastBallSeq.current, at: Date.now() } }); };
+  net.input = (i) => { const now = Date.now(); if (now - lastInputSend.current < 50) return; lastInputSend.current = now; channelRef.current?.send({ type: "broadcast", event: "input", payload: i }); };
+  net.goal = (team) => { if (net.isHost) pendingGoal.current = team; };
 
   const hostTick = (now: number) => {
     const all = [playerId, ...roster.current].sort();
     net.ids = all;
-    const wasHost = net.isHost;\n    net.isHost = all[0] === playerId;\n    if (net.isHost && !wasHost) { authority.current = playerId; lastBallSeq.current = 0; }
+    const wasHost = net.isHost;
+    net.isHost = all[0] === playerId;
+    if (net.isHost && !wasHost) { authority.current = playerId; lastBallSeq.current = 0; }
     if (!net.isHost) return;
     const cur = match.get();
     const elapsed = now - cur.phaseAt;
@@ -173,7 +177,6 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     hostAcc.current += delta;
     if (hostAcc.current > 0.1) { hostAcc.current = 0; hostTick(Date.now()); }
 
-    }
     acc.current += delta;
     if (acc.current < NET_TICK) return;
     acc.current = 0;

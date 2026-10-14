@@ -79,7 +79,6 @@ export const net: {
   vote: (mode: Mode) => void;
   ball: (b: BallMsg) => void;
   input: (i: { id: string; seq: number; moveX: number; moveZ: number; dash: number; tackle: number; kick: number; at: number }) => void;
-  input: (i: { id: string; seq: number; moveX: number; moveZ: number; dash: number; tackle: number; kick: number; at: number }) => void;
   goal: (team: "A" | "B") => void;
   isHost: boolean;
   ids: string[];
