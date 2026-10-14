@@ -107,6 +107,7 @@ export function useGameChannel(roomCode: string, name: string, handlers: Handler
     }, 2500);
     return () => {
       window.clearInterval(pingTimer);
+      netStats.ping = null;
       channelRef.current = null;
       supabase.removeChannel(channel);
     };
