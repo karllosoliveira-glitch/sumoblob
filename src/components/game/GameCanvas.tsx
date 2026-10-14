@@ -20,6 +20,7 @@ export function GameCanvas({ roomCode, name, onFall, onRoster, onScores }: { roo
   const { mode, phase } = useMatch();
   const [dpr, setDpr] = useState(1.5);
   const soccer = mode === "futebol" && phase !== "lobby" && phase !== "vote";
+  const sumo = mode === "sumo" && phase !== "lobby" && phase !== "vote";
 
   return <div className="relative h-full w-full touch-none overflow-hidden overscroll-none" style={{ WebkitTapHighlightColor: "transparent", paddingBottom: "env(safe-area-inset-bottom)" }}>
     <Canvas shadows="soft" dpr={dpr} gl={{ antialias: true, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.15 }} camera={{ position: [0, 11, 14.5], fov: 55 }}>
@@ -30,6 +31,6 @@ export function GameCanvas({ roomCode, name, onFall, onRoster, onScores }: { roo
     </Canvas>
     <SoccerScoreboard />
     <RaceHUD playerRef={playerRef} localRef={localRef} remote={remote} />
-    <MobileControls soccer={soccer} />
+    <MobileControls soccer={soccer} sumo={sumo} />
   </div>;
 }
