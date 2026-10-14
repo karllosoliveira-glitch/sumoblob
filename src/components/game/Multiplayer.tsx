@@ -6,7 +6,7 @@ import { playerId, useGameChannel, type GrabMsg, type NetState } from "@/hooks/u
 import { Sumo, colorForId } from "../Sumo";
 import { RaceVehicle, isVehicleMode } from "./RaceVehicle";
 import type { LocalState } from "./Player";
-import { COUNTDOWN_MS, FINAL_MS, GOALS_TO_WIN, ROUND_END_MS, ROUNDS, TEAMS, VOTE_MS, ballNet, fx, hitQueue, lobby, match, net, SOCCER_MS, isRaceMode, teamOf, useMatch, type MatchState, type Mode } from "./match";
+import { COUNTDOWN_MS, FINAL_MS, GOALS_TO_WIN, ROUND_END_MS, ROUNDS, TEAMS, VOTE_MS, MODES, ballNet, fx, hitQueue, lobby, match, net, SOCCER_MS, isRaceMode, teamOf, useMatch, type MatchState, type Mode } from "./match";
 import { physicsSensors } from "./physicsSensors";
 import { sfx } from "./sfx";
 
@@ -114,9 +114,9 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     } else if (cur.phase === "vote") {
       const votes = Object.entries(cur.votes).filter(([id]) => all.includes(id));
       if (elapsed > VOTE_MS || votes.length >= n) {
-        const count = { sumo: 0, futebol: 0, corrida: 0 };
+        const count = Object.fromEntries((Object.keys(MODES) as Mode[]).map((mode) => [mode, 0])) as Record<Mode, number>;
         votes.forEach(([, v]) => count[v]++);
-        const best = Math.max(count.sumo, count.futebol, count.corrida);
+        const best = Math.max(...Object.values(count));
         const tied = (Object.keys(count) as Mode[]).filter((mode) => count[mode] === best);
         const mode = tied[Math.floor(Math.random() * tied.length)] ?? "sumo";
         go({ phase: "countdown", mode, round: 1, winner: null, points: {}, startedAt: now + COUNTDOWN_MS });
