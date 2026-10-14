@@ -19,7 +19,7 @@ function PlayerInner({playerRef,localRef,remote,onFall}:{playerRef:React.RefObje
  const grabCooldown=useRef(0),grabTarget=useRef("");
  const respawn=(drop=5)=>{const race=isRaceMode(match.get().mode);pos.current.set(race?RACE_X_MIN+2:Math.cos(a)*(ARENA_R-3.5),drop,race?(Math.random()*2-1)*3:Math.sin(a)*(ARENA_R-3.5));vel.current.set(0,0,0);yaw.current=race?0:Math.atan2(-pos.current.x,-pos.current.z);hopY.current=drop;hopV.current=0;vy.current=0;falling.current=false;localRef.current.out=0;localRef.current.dead=0;sfx.pop()};
  const kick=(n:number)=>{squashV.current-=n};
- useFrame((state,rawDelta)=>{const frameDt=Math.min(rawDelta,.1),k=keys.current,group=playerRef.current;if(!group)return;const m=match.get(),soccer=m.mode==="futebol"&&m.phase!=="lobby"&&m.phase!=="vote",race=isRaceMode(m.mode)&&m.phase!=="lobby"&&m.phase!=="vote";
+ useFrame((state,rawDelta)=>{const frameDt=Math.min(rawDelta,.1),k=keys.current,group=playerRef.current;if(!group)return;const m=match.get(),soccer=m.mode==="futebol"&&m.phase!=="lobby"&&m.phase!=="vote",race=isRaceMode(m.mode)&&m.phase!=="lobby"&&m.phase!=="vote",vehicle=isVehicleMode(m.mode);
   if(m.seq!==lastSeq.current){lastSeq.current=m.seq;if(m.phase==="countdown"){vel.current.set(0,0,0);charge.current=0;kickFx.current=0;dashTimer.current=0;tackleTimer.current=0;const ids=[playerId,...remote.current.keys()].sort(),i=ids.indexOf(playerId);if(soccer){const team=teamOf(playerId,ids),mates=ids.filter(id=>teamOf(id,ids)===team);pos.current.set(team==="A"?-6:6,3,(mates.indexOf(playerId)-(mates.length-1)/2)*2.6);yaw.current=team==="A"?Math.PI/2:-Math.PI/2;hopY.current=3}else if(race){respawn(3);localRef.current.cp=0;pos.current.x=RACE_X_MIN+2;pos.current.z=(i-(ids.length-1)/2)*1.8;hopY.current=3}else respawn(4)}}
   cooldown.current=Math.max(0,cooldown.current-frameDt);dashTimer.current=Math.max(0,dashTimer.current-frameDt);tackleTimer.current=Math.max(0,tackleTimer.current-frameDt);stunned.current=Math.max(0,stunned.current-frameDt);kickFx.current=Math.max(0,kickFx.current-frameDt);grabCooldown.current=Math.max(0,grabCooldown.current-frameDt);localRef.current.dash=dashTimer.current>0?1:0;localRef.current.vx=vel.current.x;localRef.current.vz=vel.current.z;localRef.current.kick=kickFx.current>0?kickPower.current:0;localRef.current.tackle=tackleTimer.current>0?1:0;
   if(localRef.current.dead){group.visible=false;return}group.visible=true;
@@ -27,8 +27,17 @@ function PlayerInner({playerRef,localRef,remote,onFall}:{playerRef:React.RefObje
    if(!falling.current){while(hitQueue.length){const h=hitQueue.shift();if(!h)continue;vel.current.x+=h.x*h.power;vel.current.z+=h.z*h.power;hopV.current=h.dash?8:4;spin.current=(Math.random()-.5)*(h.dash?20:8);stunned.current=h.dash?.45:.2;kick(h.dash?10:6);fx.shake=Math.max(fx.shake,h.dash?.5:.2);sfx.boing(h.dash?1.2:.9)}
    const ix=(k.has("KeyD")||k.has("ArrowRight")?1:0)-(k.has("KeyA")||k.has("ArrowLeft")?1:0),iz=(k.has("KeyS")||k.has("ArrowDown")?1:0)-(k.has("KeyW")||k.has("ArrowUp")?1:0);
    net.input({ id: playerId, seq: Math.floor(performance.now()*20), moveX: ix, moveZ: iz, dash: dashTimer.current>0?1:0, tackle: tackleTimer.current>0?1:0, kick: kickFx.current>0?1:0, at: Date.now() });const grounded=hopY.current<=.001,control=m.phase==="countdown"?0:stunned.current>0?.15:grounded?1:.35;
-   const hasInput=ix!==0||iz!==0;
-   if(hasInput&&m.phase!=="countdown"){
+   const throttle=vehicle?((k.has("KeyW")||k.has("ArrowUp")?1:0)-(k.has("KeyS")||k.has("ArrowDown")?1:0)):0;
+   const hasInput=vehicle?(ix!==0||throttle!==0):(ix!==0||iz!==0);
+   if(vehicle){
+     if(m.phase!=="countdown"&&stunned.current===0){
+       if(ix!==0){const speed=Math.min(1,vel.current.length()/RACE_MAX_SPEED);const steerRate=m.mode==="motos"?3.05:m.mode==="carros"?2.05:2.55;yaw.current+=ix*steerRate*(0.28+speed*0.85)*(throttle<0?-1:1)*dt}
+       if(throttle!==0){tmp.set(Math.sin(yaw.current),0,Math.cos(yaw.current));vel.current.addScaledVector(tmp,throttle*RACE_ACCEL*(m.mode==="kart"?1.12:1)*control*dt)}
+     }
+     vel.current.multiplyScalar(Math.exp(-(throttle===0?RACE_DRAG:0.16)*dt));
+     const vehicleMax=RACE_MAX_SPEED*(m.mode==="carros"?1.22:m.mode==="motos"?1.1:1);
+     if(vel.current.length()>vehicleMax)vel.current.setLength(vehicleMax);
+   }else if(hasInput&&m.phase!=="countdown"){
      tmp.set(ix,0,iz).normalize();
      const acc=race?RACE_ACCEL:soccer?SOAP_ACCEL:ACCEL;
      const response=race?STEER_RESPONSE:soccer?SOAP_STEER_RESPONSE:STEER_RESPONSE;
@@ -46,10 +55,9 @@ function PlayerInner({playerRef,localRef,remote,onFall}:{playerRef:React.RefObje
        yaw.current+=THREE.MathUtils.clamp(turn,-MAX_TURN_RATE*dt,MAX_TURN_RATE*dt);
      }
      if(grounded){stepT.current+=dt;if(stepT.current>(race?.1:soccer?.13:.18)){stepT.current=0;sfx.step();hopV.current=race?1.4:soccer?0:2.2}}
-   } else if(!hasInput && m.phase!=="countdown"){
-     const stop=1-Math.exp(-(soccer?1.6:STOP_RESPONSE)*dt);
-     vel.current.x=THREE.MathUtils.lerp(vel.current.x,0,stop);
-     vel.current.z=THREE.MathUtils.lerp(vel.current.z,0,stop);
+   }else if(!hasInput&&m.phase!=="countdown"){
+     if(vehicle)vel.current.multiplyScalar(Math.exp(-RACE_DRAG*dt));
+     else {const stop=1-Math.exp(-(soccer?1.6:STOP_RESPONSE)*dt);vel.current.x=THREE.MathUtils.lerp(vel.current.x,0,stop);vel.current.z=THREE.MathUtils.lerp(vel.current.z,0,stop)}
    }
    const space=k.has("Space"),ps=space&&!lastSpace.current,released=!space&&lastSpace.current,shift=k.has("ShiftLeft")||k.has("ShiftRight"),pShift=shift&&!lastShift.current;lastSpace.current=space;lastShift.current=shift;
    if(m.phase==="fight"&&!stunned.current){
