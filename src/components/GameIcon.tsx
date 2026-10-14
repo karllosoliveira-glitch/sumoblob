@@ -1,4 +1,4 @@
-import { Flag, Hand, Volleyball, type LucideProps } from "lucide-react";
+import { Bike, CarFront, Flag, Hand, Volleyball, type LucideProps } from "lucide-react";
 import type { Mode } from "./game/match";
 
 export function BlobIcon({ size = 28, className = "" }: { size?: number; className?: string }) {
@@ -15,5 +15,7 @@ export function BlobIcon({ size = 28, className = "" }: { size?: number; classNa
 export function ModeIcon({ mode, ...p }: { mode: Mode } & LucideProps) {
   if (mode === "futebol") return <Volleyball {...p} />;
   if (mode === "corrida") return <Flag {...p} />;
+  if (mode === "carros" || mode === "kart") return <CarFront {...p} />;
+  if (mode === "motos") return <Bike {...p} />;
   return <Hand {...p} />;
 }
