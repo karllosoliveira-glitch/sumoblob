@@ -4,8 +4,9 @@ import * as THREE from "three";
 import { Text } from "@react-three/drei";
 import { playerId, useGameChannel, type GrabMsg, type NetState } from "@/hooks/useGameChannel";
 import { Sumo, colorForId } from "../Sumo";
+import { RaceVehicle, isVehicleMode } from "./RaceVehicle";
 import type { LocalState } from "./Player";
-import { COUNTDOWN_MS, FINAL_MS, GOALS_TO_WIN, ROUND_END_MS, ROUNDS, TEAMS, VOTE_MS, ballNet, fx, hitQueue, lobby, match, net, SOCCER_MS, teamOf, useMatch, type MatchState, type Mode } from "./match";
+import { COUNTDOWN_MS, FINAL_MS, GOALS_TO_WIN, ROUND_END_MS, ROUNDS, TEAMS, VOTE_MS, ballNet, fx, hitQueue, lobby, match, net, SOCCER_MS, isRaceMode, teamOf, useMatch, type MatchState, type Mode } from "./match";
 import { physicsSensors } from "./physicsSensors";
 import { sfx } from "./sfx";
 
@@ -36,7 +37,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
       if (m.phase === "fight") sfx.whistle();
       if (m.phase === "roundEnd" && m.winner) { fx.goalAt = performance.now(); fx.goalTeam = m.winner as "A" | "B"; fx.shake = 0.9; sfx.crowd(1.2); }
       if (m.phase === "final") { sfx.whistle(true); sfx.crowd(1); }
-    } else if (m.phase === "fight" && m.mode === "corrida") sfx.whistle();
+    } else if (m.phase === "fight" && isRaceMode(m.mode)) sfx.whistle();
     if (m.phase === "final" || (m.phase === "roundEnd" && m.mode !== "futebol")) fx.goalAt = performance.now();
   }, [m.seq]);
 
@@ -130,7 +131,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
       const a = cur.points["A"] ?? 0, b = cur.points["B"] ?? 0;
       if (cur.startedAt && now - cur.startedAt > SOCCER_MS) go({ phase: "final", winner: a > b ? "A" : b > a ? "B" : null });
       else if (pendingGoal.current) { const t = pendingGoal.current; pendingGoal.current = null; const points = { ...cur.points, [t]: (cur.points[t] ?? 0) + 1 }; go({ phase: "roundEnd", winner: t, points }); }
-    } else if (cur.phase === "fight" && cur.mode === "corrida") {
+    } else if (cur.phase === "fight" && isRaceMode(cur.mode)) {
       const finishers = all.filter((id) => id === playerId ? physicsSensors.finish(playerRef.current?.position.x ?? -999, playerRef.current?.position.z ?? 999) : physicsSensors.finish(remote.current.get(id)?.x ?? -999, remote.current.get(id)?.z ?? 999));
       if (finishers.length) {
         const w = finishers[0] as string;
@@ -194,5 +195,5 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     channel.send({ type: "broadcast", event: "state", payload: { id: playerId, name, x, y, z, ry, dash, out, falls, dead, tackle, kick, kickSeq: localRef.current.kickSeq ?? 0, vx: Math.round(localRef.current.vx * 10) / 10, vz: Math.round(localRef.current.vz * 10) / 10 } satisfies NetState });
   });
 
-  return <>{ids.map((id, i) => <group key={id} visible={false} ref={(g) => { if (g) meshes.current.set(id, g); else meshes.current.delete(id); }}><Sumo key={m.mode} color={m.mode === "futebol" ? TEAMS[teamOf(id, allIds)].color : colorForId(id)} seed={i * 1.7 + 1} /><Text position={[0, 2.5, 0]} fontSize={0.42} color="#ffffff" outlineWidth={0.05} outlineColor="#2b2119" anchorX="center">{remote.current.get(id)?.name ?? "jogador"}</Text></group>)}</>;
+  return <>{ids.map((id, i) => <group key={id} visible={false} ref={(g) => { if (g) meshes.current.set(id, g); else meshes.current.delete(id); }}>{isVehicleMode(m.mode) ? <RaceVehicle mode={m.mode} color={colorForId(id)} seed={i * 1.7 + 1} /> : <Sumo key={m.mode} color={m.mode === "futebol" ? TEAMS[teamOf(id, allIds)].color : colorForId(id)} seed={i * 1.7 + 1} />}<Text position={[0, 2.5, 0]} fontSize={0.42} color="#ffffff" outlineWidth={0.05} outlineColor="#2b2119" anchorX="center">{remote.current.get(id)?.name ?? "jogador"}</Text></group>)}</>;
 }
