@@ -15,7 +15,7 @@ export const physicsSensors = {
   checkpoint(x: number, z: number, current: number): number {
     if (Math.abs(z) > RACE_LANE_HALF + PLAYER_R) return current;
     let next = current;
-    while (next < RACE_CHECKPOINTS.length && x >= RACE_CHECKPOINTS[next]) next++;
+    while (next < RACE_CHECKPOINTS.length && x >= (RACE_CHECKPOINTS[next] ?? Infinity)) next++;
     return next;
   },
   finish(x: number, z: number): boolean {

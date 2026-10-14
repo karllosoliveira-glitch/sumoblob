@@ -26,7 +26,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
   const authority = useRef("");
   const hostWasHost = useRef(false);
   const votesDirty = useRef(false);
-  const last = useRef({ x: 0, y: 0, z: 0, ry: 0, dash: 0, out: 0, falls: 0, dead: 0, tackle: 0, kick: 0, at: -1, inputAt: 0 });
+  const last = useRef({ x: 0, y: 0, z: 0, ry: 0, dash: 0, out: 0, falls: 0, dead: 0, tackle: 0, kick: 0, at: -1 });
   const m = useMatch();
   const allIds = [playerId, ...ids];
 
