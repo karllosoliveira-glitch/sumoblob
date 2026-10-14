@@ -4,12 +4,12 @@ import type * as THREE from "three";
 import { playerId, type NetState } from "@/hooks/useGameChannel";
 import type { LocalState } from "./Player";
 import { RACE_CHECKPOINTS, RACE_X_FINISH, RACE_X_MIN } from "./constants";
-import { useMatch } from "./match";
+import { isRaceMode, useMatch } from "./match";
 
 /** Posição ao vivo (1º, 2º...) e progresso na pista da Corrida Maluca. */
 export function RaceHUD({ playerRef, localRef, remote }: { playerRef: React.RefObject<THREE.Group | null>; localRef: React.RefObject<LocalState>; remote: React.RefObject<Map<string, NetState>> }) {
   const m = useMatch();
-  const race = m.mode === "corrida" && (m.phase === "fight" || m.phase === "countdown");
+  const race = isRaceMode(m.mode) && (m.phase === "fight" || m.phase === "countdown");
   const [, tick] = useState(0);
   useEffect(() => { if (!race) return; const t = setInterval(() => tick((n) => n + 1), 200); return () => clearInterval(t); }, [race]);
   if (!race) return null;
