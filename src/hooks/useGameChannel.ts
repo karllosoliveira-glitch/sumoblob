@@ -25,6 +25,7 @@ export type NetState = {
 export type BallMsg = import("@/components/game/match").BallMsg;
 
 export type HitMsg = { to: string; from: string; x: number; z: number; power: number; dash: number };
+export type GrabMsg = { to: string; from: string; x: number; z: number; active: boolean; at: number };
 
 export const playerId =
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -36,6 +37,7 @@ type Handlers = {
   onInput?: (i: InputMsg) => void;
   onRoster: (roster: { id: string; name: string }[]) => void;
   onHit: (h: HitMsg) => void;
+  onGrab: (g: GrabMsg) => void;
   onMatch: (m: import("@/components/game/match").MatchState) => void;
   onVote: (v: { from: string; mode: import("@/components/game/match").Mode }) => void;
   onBall: (b: BallMsg) => void;
@@ -65,6 +67,10 @@ export function useGameChannel(roomCode: string, name: string, handlers: Handler
       .on("broadcast", { event: "hit" }, ({ payload }) => {
         const m = payload as HitMsg;
         if (m.to === playerId) h.current.onHit(m);
+      })
+      .on("broadcast", { event: "grab" }, ({ payload }) => {
+        const g = payload as GrabMsg;
+        if (g.to === playerId) h.current.onGrab(g);
       })
       .on("broadcast", { event: "match" }, ({ payload }) => {
         h.current.onMatch(payload as import("@/components/game/match").MatchState);
