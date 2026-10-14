@@ -16,9 +16,9 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Sumô Bobão — Party Game de Blobs" },
-      { name: "description", content: "Um party game 3D de blobs: sumô, futebol de sabão e corrida maluca." },
+      { name: "description", content: "Um party game 3D de blobs: sumô, futebol de sabão, corridas de carros, motos e karts." },
       { property: "og:title", content: "Sumô Bobão — Party Game de Blobs" },
-      { property: "og:description", content: "Jogue sumô, futebol de sabão e corrida maluca com seus amigos por código de sala." },
+      { property: "og:description", content: "Jogue sumô, futebol de sabão e corridas de carros, motos e karts com amigos." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -136,10 +136,10 @@ function Index() {
 function Home({ name, setName, room, setRoom, join }: any) {
   return <div className="grid w-full max-w-5xl items-center gap-10 lg:grid-cols-[1.1fr_.9fr]">
     <section className="text-center lg:text-left">
-      <div className="mb-4 inline-flex -rotate-2 items-center gap-2 rounded-full border-4 border-[#241b35] bg-[#62e5a2] px-4 py-2 font-black text-[#241b35] shadow-[0_5px_0_#241b35]"><Zap size={18} /> NOVO: CORRIDA MALUCA</div>
+      <div className="mb-4 inline-flex -rotate-2 items-center gap-2 rounded-full border-4 border-[#241b35] bg-[#62e5a2] px-4 py-2 font-black text-[#241b35] shadow-[0_5px_0_#241b35]"><Zap size={18} /> NOVO: CARROS, MOTOS E KARTS</div>
       <h1 className="font-display text-6xl leading-[.86] tracking-tight text-white drop-shadow-[6px_7px_0_#241b35] md:text-8xl">CAIA.<br/><span className="text-[#ffcf3f]">EMPURRE.</span><br/>RACHE.</h1>
-      <p className="mt-6 max-w-xl text-lg font-extrabold text-[#fff] drop-shadow-[2px_2px_0_#3a2862]">Um party game 3D caótico para você e seus amigos. Sumô, futebol de sabão e corrida maluca.</p>
-      <div className="mt-7 flex flex-wrap justify-center gap-3 lg:justify-start"><Pill><ModeIcon mode="sumo" size={14} className="mr-1 inline"/>SUMÔ</Pill><Pill><ModeIcon mode="futebol" size={14} className="mr-1 inline"/>FUTEBOL</Pill><Pill><ModeIcon mode="corrida" size={14} className="mr-1 inline"/>CORRIDA</Pill></div>
+      <p className="mt-6 max-w-xl text-lg font-extrabold text-[#fff] drop-shadow-[2px_2px_0_#3a2862]">Um party game 3D caótico para você e seus amigos: sumô, futebol de sabão, corrida maluca, carros, motos e karts.</p>
+      <div className="mt-7 flex flex-wrap justify-center gap-3 lg:justify-start"><Pill><ModeIcon mode="sumo" size={14} className="mr-1 inline"/>SUMÔ</Pill><Pill><ModeIcon mode="futebol" size={14} className="mr-1 inline"/>FUTEBOL</Pill><Pill><ModeIcon mode="corrida" size={14} className="mr-1 inline"/>CORRIDA</Pill><Pill><ModeIcon mode="carros" size={14} className="mr-1 inline"/>CARROS</Pill><Pill><ModeIcon mode="motos" size={14} className="mr-1 inline"/>MOTOS</Pill><Pill><ModeIcon mode="kart" size={14} className="mr-1 inline"/>KARTS</Pill></div>
     </section>
     <section className="rounded-[2rem] border-[5px] border-[#241b35] bg-white/95 p-6 text-[#241b35] shadow-[0_12px_0_#241b35,0_25px_60px_rgba(30,20,70,.25)] backdrop-blur">
       <div className="mb-5 flex items-center justify-between"><div><h2 className="font-display text-3xl">JOGAR</h2><p className="font-bold text-black/50">Crie ou entre em uma sala.</p></div><div className="grid size-14 place-items-center rounded-2xl bg-[#ff6b8a] text-3xl text-white"><Sparkles size={28}/></div></div>
