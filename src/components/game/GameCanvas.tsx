@@ -61,7 +61,7 @@ function PerformanceHUD() {
   }, []);
   const fpsTone = stats.fps >= 55 ? "text-emerald-300" : stats.fps >= 30 ? "text-amber-300" : "text-rose-300";
   const pingTone = stats.ping === null ? "text-white/70" : stats.ping < 70 ? "text-emerald-300" : stats.ping < 140 ? "text-amber-300" : "text-rose-300";
-  return <div className="pointer-events-none absolute bottom-32 right-3 z-20 flex items-center gap-2 rounded-xl border border-white/20 bg-slate-950/70 px-3 py-2 font-mono text-[11px] font-bold shadow-xl backdrop-blur-md sm:bottom-4 sm:right-4">
+  return <div className="pointer-events-none absolute bottom-32 right-3 z-20 flex items-center gap-2 rounded-xl border border-white/20 bg-slate-950/70 px-3 py-2 font-mono text-[11px] font-bold shadow-xl backdrop-blur-md sm:bottom-14 sm:right-4">
     <span className={fpsTone}>FPS {stats.fps || "—"}</span><span className="text-white/30">|</span><span className={pingTone}>PING {stats.ping === null ? "—" : String(stats.ping) + " ms"}</span>
   </div>;
 }
