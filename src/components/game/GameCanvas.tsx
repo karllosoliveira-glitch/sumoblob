@@ -11,7 +11,7 @@ import { MobileControls } from "./MobileControls";
 import { Multiplayer } from "./Multiplayer";
 import { Player, type LocalState } from "./Player";
 import { SoccerScoreboard } from "./SoccerScoreboard";
-import { isRaceMode, netStats, useMatch } from "./match";
+import { netStats, useMatch } from "./match";
 
 export function GameCanvas({ roomCode, name, onFall, onRoster, onScores }: { roomCode: string; name: string; onFall: () => void; onRoster: (roster: { id: string; name: string }[]) => void; onScores: (scores: Record<string, number>) => void; }) {
   const playerRef = useRef<THREE.Group>(null);
@@ -21,7 +21,6 @@ export function GameCanvas({ roomCode, name, onFall, onRoster, onScores }: { roo
   const [dpr, setDpr] = useState(1.5);
   const soccer = mode === "futebol" && phase !== "lobby" && phase !== "vote";
   const sumo = mode === "sumo" && phase !== "lobby" && phase !== "vote";
-  const racing = isRaceMode(mode) && phase !== "lobby" && phase !== "vote";
 
   return <div className="relative h-full w-full touch-none overflow-hidden overscroll-none" style={{ WebkitTapHighlightColor: "transparent", paddingBottom: "env(safe-area-inset-bottom)" }}>
     <Canvas shadows="soft" dpr={dpr} gl={{ antialias: true, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.15 }} camera={{ position: [0, 11, 14.5], fov: 55 }}>
@@ -62,7 +61,7 @@ function PerformanceHUD() {
   }, []);
   const fpsTone = stats.fps >= 55 ? "text-emerald-300" : stats.fps >= 30 ? "text-amber-300" : "text-rose-300";
   const pingTone = stats.ping === null ? "text-white/70" : stats.ping < 70 ? "text-emerald-300" : stats.ping < 140 ? "text-amber-300" : "text-rose-300";
-  return <div className="pointer-events-none absolute bottom-16 right-3 z-20 flex items-center gap-2 rounded-xl border border-white/20 bg-slate-950/70 px-3 py-2 font-mono text-[11px] font-bold shadow-xl backdrop-blur-md sm:bottom-4 sm:right-4">
+  return <div className="pointer-events-none absolute bottom-32 right-3 z-20 flex items-center gap-2 rounded-xl border border-white/20 bg-slate-950/70 px-3 py-2 font-mono text-[11px] font-bold shadow-xl backdrop-blur-md sm:bottom-4 sm:right-4">
     <span className={fpsTone}>FPS {stats.fps || "—"}</span><span className="text-white/30">|</span><span className={pingTone}>PING {stats.ping === null ? "—" : String(stats.ping) + " ms"}</span>
   </div>;
 }
