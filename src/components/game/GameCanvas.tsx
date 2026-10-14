@@ -11,7 +11,7 @@ import { MobileControls } from "./MobileControls";
 import { Multiplayer } from "./Multiplayer";
 import { Player, type LocalState } from "./Player";
 import { SoccerScoreboard } from "./SoccerScoreboard";
-import { netStats, useMatch } from "./match";
+import { isRaceMode, netStats, useMatch } from "./match";
 
 export function GameCanvas({ roomCode, name, onFall, onRoster, onScores }: { roomCode: string; name: string; onFall: () => void; onRoster: (roster: { id: string; name: string }[]) => void; onScores: (scores: Record<string, number>) => void; }) {
   const playerRef = useRef<THREE.Group>(null);
@@ -33,7 +33,7 @@ export function GameCanvas({ roomCode, name, onFall, onRoster, onScores }: { roo
     <PerformanceHUD />
     <SoccerScoreboard />
     <RaceHUD playerRef={playerRef} localRef={localRef} remote={remote} />
-    <MobileControls soccer={soccer} sumo={sumo} />
+    <MobileControls soccer={soccer} sumo={sumo} racing={isRaceMode(mode) && phase !== "lobby" && phase !== "vote"} />
   </div>;
 }
 
