@@ -2,7 +2,7 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { Text } from "@react-three/drei";
-import { playerId, useGameChannel, type NetState } from "@/hooks/useGameChannel";
+import { playerId, useGameChannel, type GrabMsg, type NetState } from "@/hooks/useGameChannel";
 import { Sumo, colorForId } from "../Sumo";
 import type { LocalState } from "./Player";
 import { COUNTDOWN_MS, FINAL_MS, GOALS_TO_WIN, ROUND_END_MS, ROUNDS, TEAMS, VOTE_MS, ballNet, fx, hitQueue, lobby, match, net, SOCCER_MS, teamOf, useMatch, type MatchState, type Mode } from "./match";
@@ -72,6 +72,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
       onScores(Object.fromEntries([...remote.current.values()].map((r) => [r.id, r.falls])));
     },
     onHit: (h) => { hitQueue.push(h); },
+    onGrab: (g: GrabMsg) => { localRef.current.grabbed = { from: g.from, x: g.x, z: g.z, active: g.active, at: performance.now() }; },
     onInput: () => {},
     onMatch: (mm) => { if (!net.isHost) applyMatch(mm); },
     onVote: (v) => { if (net.isHost) recordVote(v.from, v.mode); },
@@ -79,6 +80,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
   });
 
   net.hit = (msg) => { channelRef.current?.send({ type: "broadcast", event: "hit", payload: msg }); };
+  net.grab = (msg) => { channelRef.current?.send({ type: "broadcast", event: "grab", payload: msg }); };
   net.vote = (mode) => {
     if (net.isHost) recordVote(playerId, mode);
     else channelRef.current?.send({ type: "broadcast", event: "vote", payload: { from: playerId, mode } });
