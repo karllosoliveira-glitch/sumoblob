@@ -4,7 +4,6 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { ARENA_R, FIELD_X, FIELD_Z, GOAL_HALF, RACE_LANE_HALF, RACE_CHECKPOINTS, RACE_OBSTACLES, RACE_X_FINISH, RACE_X_MIN, obstacleState, worldTime, type RaceObstacle as RaceObstacleT } from "./constants";
 import { TEAMS, fx, useMatch } from "./match";
-import { Sumo } from "../Sumo";
 
 function sandTexture() { const c = document.createElement("canvas"); c.width = c.height = 256; const g = c.getContext("2d")!; g.fillStyle="#e7c98f"; g.fillRect(0,0,256,256); for(let i=0;i<9000;i++){const x=Math.random()*256,y=Math.random()*256,s=200+Math.random()*55;g.fillStyle=`rgba(${s},${s-30},${s-90},.35)`;g.fillRect(x,y,2,2);} const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(4,4);return t; }
 function Balloon({angle,radius}:{angle:number;radius:number}){const ref=useRef<THREE.Group>(null);useFrame(({clock})=>{if(ref.current){ref.current.position.y=6+Math.sin(clock.elapsedTime*1.2+angle*3)*.5;ref.current.rotation.y=clock.elapsedTime*.4;}});return <group ref={ref} position={[Math.cos(angle)*radius,6,Math.sin(angle)*radius]}><mesh castShadow><sphereGeometry args={[.9,16,14]}/><meshStandardMaterial color={angle%2<1?"#ff5d5d":"#3ec5f0"}/></mesh><mesh position={[0,-1,0]}><cylinderGeometry args={[.02,.02,1.6,6]}/><meshStandardMaterial color="#5a4632"/></mesh></group>}
