@@ -75,7 +75,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     onInput: () => {},
     onMatch: (mm) => { if (!net.isHost) applyMatch(mm); },
     onVote: (v) => { if (net.isHost) recordVote(v.from, v.mode); },
-    onBall: (b) => { if (net.isHost) return; if (b.authorityId && b.authorityId !== authority.current) { authority.current = b.authorityId; lastBallSeq.current = -1; } if ((b.seq ?? 0) <= lastBallSeq.current) return; lastBallSeq.current = b.seq ?? 0; Object.assign(ballNet, b, { at: performance.now(), fresh: true }); },
+    onBall: (b) => { if (net.isHost || (b.matchSeq !== undefined && b.matchSeq !== match.get().seq) || (b.authorityId && b.authorityId !== [...roster.current, playerId].sort()[0])) return; if (b.authorityId && b.authorityId !== authority.current) { authority.current = b.authorityId; lastBallSeq.current = -1; } if ((b.seq ?? 0) <= lastBallSeq.current) return; lastBallSeq.current = b.seq ?? 0; Object.assign(ballNet, b, { at: performance.now(), fresh: true }); },
   });
 
   net.hit = (msg) => { channelRef.current?.send({ type: "broadcast", event: "hit", payload: msg }); };
@@ -85,8 +85,8 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     const cur = match.get();
     if (!net.isHost && cur.phase === "vote") match.set({ ...cur, votes: { ...cur.votes, [playerId]: mode } });
   };
-  net.ball = (b) => { channelRef.current?.send({ type: "broadcast", event: "ball", payload: { ...b, authorityId: playerId, seq: ++lastBallSeq.current, at: Date.now() } }); };
-  net.input = (i) => { const now = Date.now(); if (now - lastInputSend.current < 50) return; lastInputSend.current = now; channelRef.current?.send({ type: "broadcast", event: "input", payload: i }); };
+  net.ball = (b) => { if (document.hidden || channelRef.current?.state !== "joined") return; channelRef.current?.send({ type: "broadcast", event: "ball", payload: { ...b, authorityId: playerId, seq: ++lastBallSeq.current, at: Date.now() } }); };
+  net.input = () => {};
   net.goal = (team) => { if (net.isHost) pendingGoal.current = team; };
 
   const hostTick = (now: number) => {
@@ -189,7 +189,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     const stale = clock.elapsedTime - l.at > 1;
     if (!moved && !stale) return;
     last.current = { x, y, z, ry, dash, out, falls, dead, tackle, kick, at: clock.elapsedTime };
-    channel.send({ type: "broadcast", event: "state", payload: { id: playerId, name, x, y, z, ry, dash, out, falls, dead, tackle, kick, vx: Math.round(localRef.current.vx * 10) / 10, vz: Math.round(localRef.current.vz * 10) / 10 } satisfies NetState });
+    channel.send({ type: "broadcast", event: "state", payload: { id: playerId, name, x, y, z, ry, dash, out, falls, dead, tackle, kick, kickSeq: localRef.current.kickSeq ?? 0, vx: Math.round(localRef.current.vx * 10) / 10, vz: Math.round(localRef.current.vz * 10) / 10 } satisfies NetState });
   });
 
   return <>{ids.map((id, i) => <group key={id} visible={false} ref={(g) => { if (g) meshes.current.set(id, g); else meshes.current.delete(id); }}><Sumo key={m.mode} color={m.mode === "futebol" ? TEAMS[teamOf(id, allIds)].color : colorForId(id)} seed={i * 1.7 + 1} /><Text position={[0, 2.5, 0]} fontSize={0.42} color="#ffffff" outlineWidth={0.05} outlineColor="#2b2119" anchorX="center">{remote.current.get(id)?.name ?? "jogador"}</Text></group>)}</>;
