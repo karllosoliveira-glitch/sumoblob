@@ -177,7 +177,6 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     hostAcc.current += delta;
     if (hostAcc.current > 0.1) { hostAcc.current = 0; hostTick(Date.now()); }
 
-    }
     acc.current += delta;
     if (acc.current < NET_TICK) return;
     acc.current = 0;
