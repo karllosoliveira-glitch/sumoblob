@@ -1,4 +1,3 @@
-import * as THREE from "three";
 import { Sumo } from "../Sumo";
 import type { Mode } from "./match";
 
