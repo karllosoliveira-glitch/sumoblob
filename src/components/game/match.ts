@@ -1,7 +1,12 @@
 import { useSyncExternalStore } from "react";
 
 export type Phase = "lobby" | "vote" | "countdown" | "fight" | "roundEnd" | "final";
-export type Mode = "sumo" | "futebol" | "corrida";
+export type Mode = "sumo" | "futebol" | "corrida" | "carros" | "motos" | "kart";
+
+export function isRaceMode(mode: Mode): boolean { return mode === "corrida" || mode === "carros" || mode === "motos" || mode === "kart"; }
+
+/** Métricas locais de renderização e rede para o HUD de diagnóstico. */
+export const netStats = { fps: 0, ping: null as number | null };
 
 export type MatchState = {
   phase: Phase;
@@ -27,6 +32,9 @@ export const MODES: Record<Mode, { label: string; hint: string }> = {
   sumo: { label: "Sumô", hint: "Último de pé ganha a rodada" },
   futebol: { label: "Futebol de sabão", hint: "Empurre a bola pro gol do outro time · 3 gols vence" },
   corrida: { label: "Corrida Maluca", hint: "Desvie dos obstáculos e seja o primeiro a cruzar a chegada!" },
+  carros: { label: "Corrida de Carros", hint: "Pise fundo, faça curvas e atravesse a chegada antes dos rivais!" },
+  motos: { label: "Corrida de Motos", hint: "Equilibre a moto, desvie dos obstáculos e vença a corrida!" },
+  kart: { label: "Corrida de Karts", hint: "Karts pequenos, curvas malucas e disputas no último segundo!" },
 };
 
 export const TEAMS = {
