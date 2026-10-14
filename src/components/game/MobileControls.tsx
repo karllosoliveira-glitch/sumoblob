@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { ArrowBigUp, Footprints, Volleyball, Zap } from "lucide-react";
+import { ArrowBigUp, Footprints, Hand, Volleyball, Zap } from "lucide-react";
 
 function setKey(code: string, pressed: boolean) {
   window.dispatchEvent(new CustomEvent("sumo:key", { detail: { code, pressed } }));
@@ -22,7 +22,7 @@ function HoldButton({ code, label, className = "" }: { code: string; label: Reac
   return <button type="button" aria-label={typeof label === "string" ? label : code} onPointerDown={press} onPointerUp={release} onPointerCancel={release} onPointerLeave={release} className={`touch-none select-none rounded-full border-4 border-ink bg-card/90 grid place-items-center font-display text-2xl text-foreground shadow-chunky backdrop-blur-sm active:scale-90 ${className}`}>{label}</button>;
 }
 
-export function MobileControls({ soccer }: { soccer: boolean }) {
+export function MobileControls({ soccer, sumo = false }: { soccer: boolean; sumo?: boolean }) {
   const joystick = useRef<HTMLDivElement>(null);
   const activePointer = useRef<number | null>(null);
   const center = useRef({ x: 0, y: 0 });
@@ -54,7 +54,8 @@ export function MobileControls({ soccer }: { soccer: boolean }) {
     <div ref={joystick} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} className="pointer-events-auto absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-[calc(1rem+env(safe-area-inset-left))] size-36 touch-none rounded-full border-4 border-white/70 bg-black/20 shadow-2xl backdrop-blur-sm">
       <div data-stick className="absolute left-1/2 top-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-ink bg-card/90 shadow-chunky transition-transform" />
     </div>
-    <div className="absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))] flex items-end gap-3">
+    <div className="absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))] flex items-end gap-2 sm:gap-3">
+      {sumo && <HoldButton code="KeyE" label={<span className="flex flex-col items-center gap-0.5"><Hand size={27}/><span className="text-[9px]">PUXAR</span></span>} className="size-[4.25rem] border-white/70 bg-rose-500/95 text-white sm:size-20" />}
       <HoldButton code="ShiftLeft" label={soccer ? <Footprints size={32}/> : <ArrowBigUp size={34}/>} className="size-20 bg-secondary/95" />
       <HoldButton code="Space" label={soccer ? <Volleyball size={40}/> : <Zap size={40}/>} className="size-24 bg-primary/95 text-primary-foreground" />
     </div>
