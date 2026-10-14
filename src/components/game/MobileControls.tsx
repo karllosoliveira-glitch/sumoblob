@@ -22,7 +22,7 @@ function HoldButton({ code, label, className = "" }: { code: string; label: Reac
   return <button type="button" aria-label={typeof label === "string" ? label : code} onPointerDown={press} onPointerUp={release} onPointerCancel={release} onPointerLeave={release} className={`touch-none select-none rounded-full border-4 border-ink bg-card/90 grid place-items-center font-display text-2xl text-foreground shadow-chunky backdrop-blur-sm active:scale-90 ${className}`}>{label}</button>;
 }
 
-export function MobileControls({ soccer, sumo = false }: { soccer: boolean; sumo?: boolean }) {
+export function MobileControls({ soccer, sumo = false, racing = false }: { soccer: boolean; sumo?: boolean; racing?: boolean }) {
   const joystick = useRef<HTMLDivElement>(null);
   const activePointer = useRef<number | null>(null);
   const center = useRef({ x: 0, y: 0 });
@@ -59,7 +59,7 @@ export function MobileControls({ soccer, sumo = false }: { soccer: boolean; sumo
       <HoldButton code="ShiftLeft" label={soccer ? <Footprints size={32}/> : <ArrowBigUp size={34}/>} className="size-20 bg-secondary/95" />
       <HoldButton code="Space" label={soccer ? <Volleyball size={40}/> : <Zap size={40}/>} className="size-24 bg-primary/95 text-primary-foreground" />
     </div>
-    <div className="absolute bottom-40 left-5 rounded-full border-2 border-white/70 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-sm">arraste para correr</div>
+    <div className="absolute bottom-40 left-5 rounded-full border-2 border-white/70 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-sm">{racing ? "arraste para dirigir" : "arraste para correr"}</div>
     {soccer && <div className="absolute bottom-36 right-7 flex gap-2 text-[10px] font-black uppercase tracking-wider text-white"><span>carrinho</span><span>chute/toque</span></div>}
   </div>;
 }
