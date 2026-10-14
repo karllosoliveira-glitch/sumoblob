@@ -76,6 +76,7 @@ export const ballNet = { x: 0, y: 0.65, z: 0, vx: 0, vy: 0, vz: 0, wx: 0, wy: 0,
 
 export const net: {
   hit: (m: import("@/hooks/useGameChannel").HitMsg) => void;
+  grab: (m: import("@/hooks/useGameChannel").GrabMsg) => void;
   vote: (mode: Mode) => void;
   ball: (b: BallMsg) => void;
   input: (i: { id: string; seq: number; moveX: number; moveZ: number; dash: number; tackle: number; kick: number; at: number }) => void;
@@ -84,6 +85,7 @@ export const net: {
   ids: string[];
 } = {
   hit: () => {},
+  grab: () => {},
   vote: () => {},
   ball: () => {},
   input: () => {},
