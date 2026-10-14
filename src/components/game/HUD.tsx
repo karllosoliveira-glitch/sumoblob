@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { colorForId } from "../Sumo";
-import { COUNTDOWN_MS, GOALS_TO_WIN, MODES, ROUNDS, TEAMS, VOTE_MS, lobby, net, teamOf, useMatch, type Mode } from "./match";
+import { COUNTDOWN_MS, GOALS_TO_WIN, isRaceMode, MODES, ROUNDS, TEAMS, VOTE_MS, lobby, net, teamOf, useMatch, type Mode } from "./match";
 import { music } from "./sfx";
 import { Crown, Flag, Volume2, VolumeX, Zap } from "lucide-react";
 import { ModeIcon } from "../GameIcon";
@@ -18,7 +18,7 @@ export function HUD({ roomCode, rows, meId, onCopy, copied }: { roomCode: string
   const nameOf = (id: string | null) => id ? (rows.find((r) => r.id === id)?.name ?? "alguém") : null;
   const sorted = [...rows].sort((a, b) => (m.points[b.id] ?? 0) - (m.points[a.id] ?? 0));
   const soccer = m.mode === "futebol" && m.phase !== "lobby" && m.phase !== "vote";
-  const race = m.mode === "corrida" && m.phase !== "lobby" && m.phase !== "vote";
+  const race = isRaceMode(m.mode) && m.phase !== "lobby" && m.phase !== "vote";
   const teamName = (t: string | null) => (t === "A" || t === "B" ? `time ${TEAMS[t].name}` : null);
   const ids = rows.map((r) => r.id);
   const myVote = m.votes[meId];
