@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { netStats } from "@/components/game/match";
 
 export type InputMsg = { id: string; seq: number; x: number; z: number; moveX: number; moveZ: number; dash: number; tackle: number; kick: number; at: number };
 
@@ -81,6 +82,14 @@ export function useGameChannel(roomCode: string, name: string, handlers: Handler
       .on("broadcast", { event: "ball" }, ({ payload }) => {
         h.current.onBall(payload as import("@/components/game/match").BallMsg);
       })
+      .on("broadcast", { event: "ping" }, ({ payload }) => {
+        const p = payload as { from: string; at: number };
+        if (p.from !== playerId) void channel.send({ type: "broadcast", event: "pong", payload: { to: p.from, at: p.at } });
+      })
+      .on("broadcast", { event: "pong" }, ({ payload }) => {
+        const p = payload as { to: string; at: number };
+        if (p.to === playerId && Number.isFinite(p.at)) netStats.ping = Math.max(0, Math.round(Date.now() - p.at));
+      })
       .on("presence", { event: "sync" }, () => {
         const roster = Object.entries(
           channel.presenceState<{ name: string }>(),
@@ -93,7 +102,11 @@ export function useGameChannel(roomCode: string, name: string, handlers: Handler
       });
 
     channelRef.current = channel;
+    const pingTimer = window.setInterval(() => {
+      if (channel.state === "joined") void channel.send({ type: "broadcast", event: "ping", payload: { from: playerId, at: Date.now() } });
+    }, 2500);
     return () => {
+      window.clearInterval(pingTimer);
       channelRef.current = null;
       supabase.removeChannel(channel);
     };
