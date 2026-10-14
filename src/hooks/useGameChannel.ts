@@ -18,10 +18,11 @@ export type NetState = {
   out: number; // 1 while falling off / respawning
   dead?: number; // 1 = eliminado nesta rodada
   tackle?: number; // 1 durante o carrinho
-  kick?: number; // 1 durante o chute
+  kick?: number; // força do chute
+  kickSeq?: number; // identifica cada chute uma única vez
 };
 
-export type BallMsg = { x: number; z: number; vx: number; vz: number; seq?: number; authorityId?: string; at?: number };
+export type BallMsg = import("@/components/game/match").BallMsg;
 
 export type HitMsg = { to: string; from: string; x: number; z: number; power: number; dash: number };
 

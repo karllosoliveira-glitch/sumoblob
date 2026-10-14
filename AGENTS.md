@@ -16,3 +16,6 @@
 - A cena 3D fica em `src/components/game/` e é montada na rota `/` com `ssr: false`. Motivo: `<Canvas>` não pode renderizar no servidor.
 - Obstáculos móveis da corrida são funções determinísticas de `worldTime()` (relógio Date.now), sem mensagens de rede. Motivo: economizar o limite de mensagens e manter as telas parecidas.
 - A partida só sai do lobby quando o anfitrião pede (`lobby.startRequested`). Motivo: o grupo decide quando começar.
+
+- Football uses one host-owned Rapier world, fixed 60 Hz steps and kinematic player colliders; never also resolve ball contacts manually, to avoid double impulses.
+- Football kicks are charged on release and identified by kickSeq; ball snapshots include height and spin at 8 Hz with change-only sends and a one-second keepalive, to prevent repeated kicks and divergent bounces.

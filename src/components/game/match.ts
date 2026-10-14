@@ -70,9 +70,9 @@ export function useMatch() {
 export type Hit = { from: string; x: number; z: number; power: number; dash: number };
 export const hitQueue: Hit[] = [];
 
-export type BallMsg = { x: number; z: number; vx: number; vz: number; seq?: number; authorityId?: string; at?: number };
-export const ball = { x: 0, z: 0, vx: 0, vz: 0 };
-export const ballNet = { x: 0, z: 0, vx: 0, vz: 0, at: 0, fresh: false };
+export type BallMsg = { x: number; z: number; vx: number; vz: number; y?: number; vy?: number; wx?: number; wy?: number; wz?: number; matchSeq?: number; seq?: number; authorityId?: string; at?: number };
+export const ball = { x: 0, y: 0.65, z: 0, vx: 0, vy: 0, vz: 0, wx: 0, wy: 0, wz: 0 };
+export const ballNet = { x: 0, y: 0.65, z: 0, vx: 0, vy: 0, vz: 0, wx: 0, wy: 0, wz: 0, at: 0, fresh: false };
 
 export const net: {
   hit: (m: import("@/hooks/useGameChannel").HitMsg) => void;

@@ -3,15 +3,17 @@ export const PHYSICS_CONFIG = {
   fixedDt: 1 / 60,
   maxFrameDt: 0.1,
   maxSubSteps: 5,
-  gravity: -22,
+  gravity: -18,
   solverIterations: 8,
   player: {
     maxLinearSpeed: 11,
     maxAngularSpeed: 0,
   },
   ball: {
-    maxLinearSpeed: 32,
-    maxAngularSpeed: 28,
+    maxLinearSpeed: 26,
+    maxAngularSpeed: 42,
+    rollingResistance: 1.1,
+    magnus: 0.018,
   },
   collision: {
     player: 0x0001,

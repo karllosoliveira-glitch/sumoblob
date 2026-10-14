@@ -17,6 +17,10 @@ export const Route = createFileRoute("/")({
     meta: [
       { title: "Sumô Bobão — Party Game de Blobs" },
       { name: "description", content: "Um party game 3D de blobs: sumô, futebol de sabão e corrida maluca." },
+      { property: "og:title", content: "Sumô Bobão — Party Game de Blobs" },
+      { property: "og:description", content: "Jogue sumô, futebol de sabão e corrida maluca com seus amigos por código de sala." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: () => <IntroGate><Index /></IntroGate>,
