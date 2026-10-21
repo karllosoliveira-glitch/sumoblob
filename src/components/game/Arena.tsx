@@ -33,10 +33,11 @@ const LAVA_PLATFORMS: [number, number, number, number][] = [
   [3,5,2.2,2.7],[-3,6,2.55,2.5],[-7,1,2.9,2.1],[0,0,3.25,2.2],
 ];
 function LavaArena(){
+  const { phase, startedAt } = useMatch();
   const lava=useRef<THREE.Mesh>(null);
   const platforms=useRef<THREE.Group>(null);
   useFrame(({clock})=>{
-    const elapsed=Math.max(0,clock.elapsedTime);
+    const elapsed=phase==="fight"?Math.max(0,(performance.now()-(startedAt??performance.now()))/1000):0;
     if(lava.current){lava.current.position.y=-1.4+Math.min(5.1,elapsed*.045);const mat=lava.current.material as THREE.MeshStandardMaterial;mat.emissiveIntensity=.7+Math.sin(elapsed*4)*.25;}
     if(platforms.current) platforms.current.children.forEach((p,i)=>{p.position.y=LAVA_PLATFORMS[i]![2]+Math.sin(elapsed*1.1+i*1.7)*.12;p.rotation.y=Math.sin(elapsed*.5+i)*.08;});
   });
