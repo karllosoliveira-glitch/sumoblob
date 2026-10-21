@@ -28,5 +28,25 @@ function RaceObstacle(o:RaceObstacleT){const{x,z,r,type}=o;const ref=useRef<THRE
   {type==="hammer"&&<><mesh position={[0,5.5,0]} rotation-z={Math.PI/2}><cylinderGeometry args={[.2,.2,CIRCUIT_HALF_WIDTH*2+1,8]}/><meshStandardMaterial color="#5a4632"/></mesh><group position={[0,5.5,0]}><mesh position={[0,-2.6,0]}><cylinderGeometry args={[.1,.1,5,6]}/><meshStandardMaterial color="#8a6a48"/></mesh><mesh position={[0,-5,0]} rotation-x={Math.PI/2} castShadow><cylinderGeometry args={[r*.8,r*.8,1.8,16]}/><meshStandardMaterial color="#ff5d5d"/></mesh></group></>}
   {type==="ramp"&&<mesh position={[0,.45,0]} rotation-z={.35} castShadow><boxGeometry args={[r*2.4,.25,r*2]}/><meshStandardMaterial color="#ffd23f"/></mesh>}
   </group>}
+const LAVA_PLATFORMS: [number, number, number, number][] = [
+  [-7,-5,1.1,2.3],[-2,-7,1.35,2.8],[4,-5,1.6,2.4],[7,0,1.9,2.5],
+  [3,5,2.2,2.7],[-3,6,2.55,2.5],[-7,1,2.9,2.1],[0,0,3.25,2.2],
+];
+function LavaArena(){
+  const lava=useRef<THREE.Mesh>(null);
+  const platforms=useRef<THREE.Group>(null);
+  useFrame(({clock})=>{
+    const elapsed=Math.max(0,clock.elapsedTime);
+    if(lava.current){lava.current.position.y=-1.4+Math.min(5.1,elapsed*.045);const mat=lava.current.material as THREE.MeshStandardMaterial;mat.emissiveIntensity=.7+Math.sin(elapsed*4)*.25;}
+    if(platforms.current) platforms.current.children.forEach((p,i)=>{p.position.y=LAVA_PLATFORMS[i]![2]+Math.sin(elapsed*1.1+i*1.7)*.12;p.rotation.y=Math.sin(elapsed*.5+i)*.08;});
+  });
+  return <group>
+    <mesh position={[0,-1.7,0]} receiveShadow><cylinderGeometry args={[ARENA_R+1,ARENA_R+1,1,64]}/><meshStandardMaterial color="#38233e"/></mesh>
+    <mesh ref={lava} position={[0,-1.4,0]}><cylinderGeometry args={[ARENA_R+1.3,ARENA_R+1.3,.5,64]}/><meshStandardMaterial color="#ff4a12" emissive="#ff2600" emissiveIntensity={.8} roughness={.3}/></mesh>
+    <group ref={platforms}>{LAVA_PLATFORMS.map(([x,z,y,r],i)=><group key={i} position={[x,y,z]}><mesh castShadow receiveShadow><cylinderGeometry args={[r,r*.92,.42,8]}/><meshStandardMaterial color={["#43d9ff","#ffcf3f","#ff70b8","#62e5a2"][i%4]} roughness={.55}/></mesh><mesh position={[0,.24,0]}><cylinderGeometry args={[r*.9,r*.9,.06,8]}/><meshStandardMaterial color="#fff4ce" emissive="#ffffff" emissiveIntensity={.12}/></mesh></group>)}</group>
+    <Text position={[0,7,0]} fontSize={1.1} color="#ffdf63" outlineWidth={.08} outlineColor="#572019" anchorX="center">CHÃO DE LAVA!</Text>
+    {Array.from({length:12},(_,i)=><mesh key={i} position={[Math.cos(i*Math.PI/6)*10,1+Math.sin(i*2)*.4,Math.sin(i*Math.PI/6)*10]}><sphereGeometry args={[.22+(i%3)*.1,10,8]}/><meshStandardMaterial color="#ff6a22" emissive="#ff2400" emissiveIntensity={1.4}/></mesh>)}
+  </group>;
+}
 function SumoArenaProps(){const props=[[-4.1,-2.2,1.05,"#ff70b8"],[3.8,-2.8,.95,"#42d17a"],[-2.4,4.1,.9,"#3ec5f0"],[4.7,2.1,1.1,"#ff9a3c"],[0,-5.2,.85,"#ffd23f"],[-5.1,1.7,.8,"#b18cff"]] as const;return <group>{props.map(([x,z,r,c],i)=><group key={i} position={[x,0,z]}><mesh position={[0,.08,0]} receiveShadow><cylinderGeometry args={[r+.22,r+.28,.16,20]}/><meshStandardMaterial color="#fff1cf" roughness={.7}/></mesh><mesh position={[0,r*.72,0]} castShadow><sphereGeometry args={[r,18,14]}/><meshStandardMaterial color={c} roughness={.28}/></mesh><mesh position={[0,r*1.38,0]}><sphereGeometry args={[r*.22,12,10]}/><meshStandardMaterial color="#fff6e8"/></mesh></group>)}</group>}
-export function Arena(){const sand=useMemo(()=>sandTexture(),[]),{mode}=useMatch();return <group><Environment><Lightformer intensity={2.2} position={[0,8,0]} scale={[14,14,1]}/></Environment>{mode==="futebol"?<Field/>:isRaceMode(mode)?<CircuitTrack mode={mode}>{circuitObstacles(getCircuit(mode)).map((o,i)=><RaceObstacle key={`${mode}-${i}`} {...o}/>)}</CircuitTrack>:<><mesh position={[0,-.5,0]} receiveShadow><cylinderGeometry args={[ARENA_R,ARENA_R-.4,1,64]}/><meshStandardMaterial map={sand}/></mesh><SumoArenaProps/></>}{!isRaceMode(mode)&&[0,1.4,2.8,4.2].map(a=><Balloon key={a} angle={a} radius={ARENA_R+7}/>)}</group>}
+export function Arena(){const sand=useMemo(()=>sandTexture(),[]),{mode}=useMatch();return <group><Environment><Lightformer intensity={2.2} position={[0,8,0]} scale={[14,14,1]}/></Environment>{mode==="futebol"?<Field/>:mode==="lava"?<LavaArena/>:isRaceMode(mode)?<CircuitTrack mode={mode}>{circuitObstacles(getCircuit(mode)).map((o,i)=><RaceObstacle key={`${mode}-${i}`} {...o}/>)}</CircuitTrack>:<><mesh position={[0,-.5,0]} receiveShadow><cylinderGeometry args={[ARENA_R,ARENA_R-.4,1,64]}/><meshStandardMaterial map={sand}/></mesh><SumoArenaProps/></>}{!isRaceMode(mode)&&[0,1.4,2.8,4.2].map(a=><Balloon key={a} angle={a} radius={ARENA_R+7}/>)}</group>}
