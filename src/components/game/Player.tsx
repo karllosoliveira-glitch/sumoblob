@@ -12,7 +12,7 @@ import { RaceVehicle, isVehicleMode } from "./RaceVehicle";
 import { ACCEL, ARENA_R, BALL_R, FIELD_X, FIELD_Z, SOAP_ACCEL, SOAP_DRAG, DASH_COOLDOWN, DASH_PUSH, DASH_SPEED, DASH_TIME, DRAG, GRAVITY, MAX_SPEED, PLAYER_R, PUSH, RACE_ACCEL, RACE_DRAG, RACE_MAX_SPEED, STEER_RESPONSE, STOP_RESPONSE, MAX_TURN_RATE, SOAP_STEER_RESPONSE, SOCCER_MAX_SPEED, KICK_COOLDOWN, obstacleState, worldTime, spawnAngle } from "./constants";
 
 export type LocalState = { dash:number;out:number;falls:number;dead:number;vx:number;vz:number;kick:number;tackle:number;race?:RaceProgress;raceSeq?:number;kickSeq?:number;x?:number;y?:number;z?:number;ry?:number;grabbed?:{from:string;x:number;z:number;active:boolean;at:number} };
-const tmp=new THREE.Vector3(),camTarget=new THREE.Vector3(),renderPos=new THREE.Vector3(),camForward=new THREE.Vector3(),camRight=new THREE.Vector3();
+const tmp=new THREE.Vector3(),camTarget=new THREE.Vector3(),renderPos=new THREE.Vector3();
 export function Player(props:Parameters<typeof PlayerInner>[0]){return <PlayerInner {...props}/>}
 function PlayerInner({playerRef,localRef,remote,onFall}:{playerRef:React.RefObject<THREE.Group|null>;localRef:React.RefObject<LocalState>;remote:React.RefObject<Map<string,NetState>>;onFall:()=>void}){
  const keys=useKeyboard(),{camera}=useThree(),a=spawnAngle(playerId),displayMatch=useMatch();const pos=useRef(new THREE.Vector3()),vel=useRef(new THREE.Vector3());const yaw=useRef(0),dashTimer=useRef(0),cooldown=useRef(0),tackleTimer=useRef(0),vy=useRef(0),hopY=useRef(0),hopV=useRef(0),spin=useRef(0),falling=useRef(false);const squash=useRef(1),squashV=useRef(0),tiltX=useRef(0),tiltZ=useRef(0),stuckTimer=useRef(0),simAccumulator=useRef(0);const hitCd=useRef(new Map<string,number>()),stunned=useRef(0),stepT=useRef(0),shake=useRef(0),kickFx=useRef(0),lastSeq=useRef(-1),lastSpace=useRef(false),lastShift=useRef(false),obsCd=useRef(new Map<number,number>());
@@ -45,7 +45,7 @@ function PlayerInner({playerRef,localRef,remote,onFall}:{playerRef:React.RefObje
      const vehicleMax=RACE_MAX_SPEED*(m.mode==="carros"?1.22:m.mode==="motos"?1.1:1);
      if(vel.current.length()>vehicleMax)vel.current.setLength(vehicleMax);
    }else if(hasInput&&m.phase!=="countdown"){
-     if(race){camera.getWorldDirection(camForward);camForward.y=0;camForward.normalize();camRight.crossVectors(camForward,camera.up).normalize();tmp.copy(camForward).multiplyScalar(-iz).addScaledVector(camRight,ix).normalize()}else tmp.set(ix,0,iz).normalize();
+     if(race){const track=projectCircuit(circuit,pos.current.x,pos.current.z);tmp.set(track.tx*(-iz)+track.nx*ix,0,track.tz*(-iz)+track.nz*ix).normalize()}else tmp.set(ix,0,iz).normalize();
      const acc=race?RACE_ACCEL:soccer?SOAP_ACCEL:ACCEL;
      const response=race?STEER_RESPONSE:soccer?SOAP_STEER_RESPONSE:STEER_RESPONSE;
      const targetX=tmp.x*(race?RACE_MAX_SPEED:soccer?SOCCER_MAX_SPEED:MAX_SPEED);
