@@ -25,6 +25,7 @@ export function Sumo({ color, seed = 0 }: Props) {
   const initialized = useRef(false);
   const gait = useRef(0);
   const impact = useRef(0);
+  const previousVerticalSpeed = useRef(0);
   const skin = useMemo(() => new THREE.Color(color), [color]);
   const dark = useMemo(() => new THREE.Color(color).multiplyScalar(0.7), [color]);
 
@@ -43,8 +44,10 @@ export function Sumo({ color, seed = 0 }: Props) {
         const dz = world.current.z - previousWorld.current.z;
         speed = Math.hypot(dx, dz) / dt;
         verticalSpeed = dy / dt;
-        if (Math.abs(verticalSpeed) > 3) impact.current = Math.min(1, impact.current + dt * 2.5);
-        else impact.current = Math.max(0, impact.current - dt * 3.5);
+        // Trigger squash on landing, not continuously while jumping/falling.
+        if (previousVerticalSpeed.current < -3 && Math.abs(verticalSpeed) < 1.5) impact.current = 1;
+        previousVerticalSpeed.current = verticalSpeed;
+        impact.current = Math.max(0, impact.current - dt * 2.8);
       } else initialized.current = true;
       previousWorld.current.copy(world.current);
     }
