@@ -28,7 +28,7 @@ export function GameCanvas({ roomCode, name, onFall, onRoster, onScores }: { roo
       <FrameMeter />
       <color attach="background" args={["#8fd3f4"]} /><fog attach="fog" args={["#8fd3f4", 45, 110]} />
       <ambientLight intensity={0.48} /><hemisphereLight args={["#d9f2ff","#304d35",0.55]} /><directionalLight position={[9, 16, 8]} intensity={1.8} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} shadow-camera-left={-18} shadow-camera-right={18} shadow-camera-top={18} shadow-camera-bottom={-18} />
-      <Suspense fallback={null}><Arena /><ContactShadows position={[0,0.02,0]} opacity={0.32} scale={42} blur={2.6} far={14} resolution={512} /><Player playerRef={playerRef} localRef={localRef} remote={remote} onFall={onFall} /><Confetti /><Ball playerRef={playerRef} localRef={localRef} remote={remote} /><Multiplayer roomCode={roomCode} name={name} playerRef={playerRef} localRef={localRef} remote={remote} onRoster={onRoster} onScores={onScores} /></Suspense>
+      <Suspense fallback={null}><Arena />{!isRaceMode(mode) && <ContactShadows position={[0,0.02,0]} opacity={0.32} scale={42} blur={2.6} far={14} resolution={512} />}<Player playerRef={playerRef} localRef={localRef} remote={remote} onFall={onFall} /><Confetti /><Ball playerRef={playerRef} localRef={localRef} remote={remote} /><Multiplayer roomCode={roomCode} name={name} playerRef={playerRef} localRef={localRef} remote={remote} onRoster={onRoster} onScores={onScores} /></Suspense>
     </Canvas>
     <PerformanceHUD />
     <SoccerScoreboard />

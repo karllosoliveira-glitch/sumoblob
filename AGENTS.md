@@ -19,3 +19,6 @@
 
 - Football uses one host-owned Rapier world, fixed 60 Hz steps and kinematic player colliders; never also resolve ball contacts manually, to avoid double impulses.
 - Football kicks are charged on release and identified by kickSeq; ball snapshots include height and spin at 8 Hz with change-only sends and a one-second keepalive, to prevent repeated kicks and divergent bounces.
+
+- Race modes share a sampled closed spline for rendered road, analytic boundary collision, ordered lap gates and progress ranking; keep circuit data in raceCircuit.ts so visuals and rules cannot diverge.
+- Race progress travels inside the existing player snapshot with startedAt as the race identity; the host finalizes one race from shared progress and ordered finish times so stale packets cannot end a new race.
