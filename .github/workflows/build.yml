@@ -20,10 +20,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+
+      - name: Configurar Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Instalar dependências
-        run: npm ci
+        run: bun install --frozen-lockfile
+
+      - name: Verificar TypeScript
+        run: npx tsc --noEmit
 
       - name: Compilar projeto
         run: npm run build
