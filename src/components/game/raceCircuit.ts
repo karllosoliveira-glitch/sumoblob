@@ -1,5 +1,6 @@
 import { CatmullRomCurve3, Vector3 } from "three";
 import type { Mode } from "./match";
+import type { RaceObstacle } from "./constants";
 
 export const RACE_LAPS = 3;
 export const RACE_MIN_MS = 120_000;
@@ -43,6 +44,15 @@ export function getCircuit(mode: Mode): Circuit {
 export function circuitPoint(circuit: Circuit, fraction: number): CircuitPoint {
   const index = Math.floor(((fraction % 1 + 1) % 1) * circuit.points.length);
   return circuit.points[index] ?? { x: 0, z: 0, tx: 1, tz: 0, nx: 0, nz: -1 };
+}
+
+export function circuitObstacles(circuit: Circuit): RaceObstacle[] {
+  const types = ["soap", "bumper", "banana", "spinner", "mover", "ramp", "banana", "hammer"] as const;
+  return Array.from({ length: 24 }, (_, i) => {
+    const p = circuitPoint(circuit, .06 + i * .037);
+    const lateral = (i % 3 - 1) * 3.7;
+    return { x: p.x + p.nx * lateral, z: p.z + p.nz * lateral, nx: p.nx, nz: p.nz, heading: Math.atan2(p.tx, p.tz), r: 1.1 + (i % 3) * .2, type: types[i % types.length] ?? "bumper" };
+  });
 }
 
 export function projectCircuit(circuit: Circuit, x: number, z: number) {
