@@ -7,7 +7,7 @@ import { Sumo, colorForId } from "../Sumo";
 import { RaceVehicle, isVehicleMode } from "./RaceVehicle";
 import type { LocalState } from "./Player";
 import { COUNTDOWN_MS, FINAL_MS, GOALS_TO_WIN, ROUND_END_MS, ROUNDS, TEAMS, VOTE_MS, MODES, ballNet, fx, hitQueue, lobby, match, net, SOCCER_MS, isRaceMode, teamOf, useMatch, type MatchState, type Mode } from "./match";
-import { physicsSensors } from "./physicsSensors";
+import { compareRacers, raceCanEnd } from "./raceCircuit";
 import { sfx } from "./sfx";
 
 const NET_TICK = 1 / 8;
@@ -27,7 +27,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
   const authority = useRef("");
   const hostWasHost = useRef(false);
   const votesDirty = useRef(false);
-  const last = useRef({ x: 0, y: 0, z: 0, ry: 0, dash: 0, out: 0, falls: 0, dead: 0, tackle: 0, kick: 0, at: -1 });
+  const last = useRef({ x: 0, y: 0, z: 0, ry: 0, dash: 0, out: 0, falls: 0, dead: 0, tackle: 0, kick: 0, raceProgress: 0, raceFinishedAt: 0, raceSeq: 0, at: -1 });
   const m = useMatch();
   const allIds = [playerId, ...ids];
 
@@ -69,6 +69,8 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     },
     onState: (s) => {
       if (!roster.current.has(s.id)) return;
+      const cur=match.get();
+      if(isRaceMode(cur.mode)&&cur.phase!=="lobby"&&cur.phase!=="vote"&&s.raceSeq!==cur.startedAt)return;
       remote.current.set(s.id, s);
       onScores(Object.fromEntries([...remote.current.values()].map((r) => [r.id, r.falls])));
     },
@@ -119,7 +121,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
         const best = Math.max(...Object.values(count));
         const tied = (Object.keys(count) as Mode[]).filter((mode) => count[mode] === best);
         const mode = tied[Math.floor(Math.random() * tied.length)] ?? "sumo";
-        go({ phase: "countdown", mode, round: 1, winner: null, points: {}, startedAt: now + COUNTDOWN_MS });
+        go({ phase: "countdown", mode, round: 1, winner: null, points: {}, raceResults: undefined, startedAt: now + COUNTDOWN_MS });
       }
     } else if (cur.phase === "countdown" && elapsed > COUNTDOWN_MS) {
       pendingGoal.current = null;
@@ -132,11 +134,13 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
       if (cur.startedAt && now - cur.startedAt > SOCCER_MS) go({ phase: "final", winner: a > b ? "A" : b > a ? "B" : null });
       else if (pendingGoal.current) { const t = pendingGoal.current; pendingGoal.current = null; const points = { ...cur.points, [t]: (cur.points[t] ?? 0) + 1 }; go({ phase: "roundEnd", winner: t, points }); }
     } else if (cur.phase === "fight" && isRaceMode(cur.mode)) {
-      const finishers = all.filter((id) => id === playerId ? physicsSensors.finish(playerRef.current?.position.x ?? -999, playerRef.current?.position.z ?? 999) : physicsSensors.finish(remote.current.get(id)?.x ?? -999, remote.current.get(id)?.z ?? 999));
-      if (finishers.length) {
-        const w = finishers[0] as string;
-        const points = { ...cur.points, [w]: (cur.points[w] ?? 0) + 1 };
-        go({ phase: "roundEnd", winner: w, points });
+      const results = all.map(id => {
+        const local=id===playerId, r=remote.current.get(id), current=local?localRef.current.raceSeq===cur.startedAt:r?.raceSeq===cur.startedAt;
+        return { id, progress: current?(local?localRef.current.race?.progress:r?.raceProgress)??0:0, finishedAt: current?(local?localRef.current.race?.finishedAt:r?.raceFinishedAt)??0:0 };
+      }).sort(compareRacers);
+      if (raceCanEnd(now-(cur.startedAt??cur.phaseAt), results.some(r=>r.finishedAt>0))) {
+        const w=results[0]?.id??null;
+        go({ phase: "final", winner: w, raceResults: results, points: w?{...cur.points,[w]:(cur.points[w]??0)+1}:cur.points });
       }
     } else if (cur.phase === "roundEnd" && elapsed > ROUND_END_MS) {
       if (cur.mode === "futebol") {
@@ -187,12 +191,13 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     if (!mesh || !channel || document.hidden) return;
     const x = Math.round(mesh.position.x * 100) / 100, y = Math.round(mesh.position.y * 100) / 100, z = Math.round(mesh.position.z * 100) / 100, ry = Math.round(mesh.rotation.y * 100) / 100;
     const { dash, out, falls, dead, tackle, kick } = localRef.current;
+    const raceProgress=Math.round((localRef.current.race?.progress??0)*1000)/1000,raceFinishedAt=localRef.current.race?.finishedAt??0,raceSeq=localRef.current.raceSeq??0;
     const l = last.current;
-    const moved = Math.abs(x - l.x) + Math.abs(y - l.y) + Math.abs(z - l.z) + Math.abs(ry - l.ry) > 0.01 || dash !== l.dash || out !== l.out || dead !== l.dead || falls !== l.falls || tackle !== l.tackle || kick !== l.kick;
+    const moved = Math.abs(x - l.x) + Math.abs(y - l.y) + Math.abs(z - l.z) + Math.abs(ry - l.ry) > 0.01 || dash !== l.dash || out !== l.out || dead !== l.dead || falls !== l.falls || tackle !== l.tackle || kick !== l.kick || raceProgress!==l.raceProgress || raceFinishedAt!==l.raceFinishedAt || raceSeq!==l.raceSeq;
     const stale = clock.elapsedTime - l.at > 1;
     if (!moved && !stale) return;
-    last.current = { x, y, z, ry, dash, out, falls, dead, tackle, kick, at: clock.elapsedTime };
-    channel.send({ type: "broadcast", event: "state", payload: { id: playerId, name, x, y, z, ry, dash, out, falls, dead, tackle, kick, kickSeq: localRef.current.kickSeq ?? 0, vx: Math.round(localRef.current.vx * 10) / 10, vz: Math.round(localRef.current.vz * 10) / 10 } satisfies NetState });
+    last.current = { x, y, z, ry, dash, out, falls, dead, tackle, kick, raceProgress, raceFinishedAt, raceSeq, at: clock.elapsedTime };
+    channel.send({ type: "broadcast", event: "state", payload: { id: playerId, name, x, y, z, ry, dash, out, falls, dead, tackle, kick, raceSeq, raceProgress, raceFinishedAt, raceLap:localRef.current.race?.lap??0,raceCp:localRef.current.race?.cp??0, kickSeq: localRef.current.kickSeq ?? 0, vx: Math.round(localRef.current.vx * 10) / 10, vz: Math.round(localRef.current.vz * 10) / 10 } satisfies NetState });
   });
 
   return <>{ids.map((id, i) => <group key={id} visible={false} ref={(g) => { if (g) meshes.current.set(id, g); else meshes.current.delete(id); }}>{isVehicleMode(m.mode) ? <RaceVehicle mode={m.mode} color={colorForId(id)} seed={i * 1.7 + 1} /> : <Sumo key={m.mode} color={m.mode === "futebol" ? TEAMS[teamOf(id, allIds)].color : colorForId(id)} seed={i * 1.7 + 1} />}<Text position={[0, 2.5, 0]} fontSize={0.42} color="#ffffff" outlineWidth={0.05} outlineColor="#2b2119" anchorX="center">{remote.current.get(id)?.name ?? "jogador"}</Text></group>)}</>;

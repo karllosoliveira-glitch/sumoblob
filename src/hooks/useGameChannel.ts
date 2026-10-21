@@ -20,6 +20,11 @@ export type NetState = {
   dead?: number; // 1 = eliminado nesta rodada
   tackle?: number; // 1 durante o carrinho
   kick?: number; // força do chute
+  raceSeq?: number;
+  raceLap?: number;
+  raceCp?: number;
+  raceProgress?: number;
+  raceFinishedAt?: number;
   kickSeq?: number; // identifica cada chute uma única vez
 };
 

@@ -19,6 +19,7 @@ export type MatchState = {
   seq: number;
   /** quando a partida (não a rodada) começou — cronômetro do futebol */
   startedAt?: number;
+  raceResults?: { id: string; progress: number; finishedAt: number }[];
 };
 
 export const ROUNDS = 3;
@@ -31,10 +32,10 @@ export const FINAL_MS = 7000;
 export const MODES: Record<Mode, { label: string; hint: string }> = {
   sumo: { label: "Sumô", hint: "Último de pé ganha a rodada" },
   futebol: { label: "Futebol de sabão", hint: "Empurre a bola pro gol do outro time · 3 gols vence" },
-  corrida: { label: "Corrida Maluca", hint: "Desvie dos obstáculos e seja o primeiro a cruzar a chegada!" },
-  carros: { label: "Corrida de Carros", hint: "Pise fundo, faça curvas e atravesse a chegada antes dos rivais!" },
-  motos: { label: "Corrida de Motos", hint: "Equilibre a moto, desvie dos obstáculos e vença a corrida!" },
-  kart: { label: "Corrida de Karts", hint: "Karts pequenos, curvas malucas e disputas no último segundo!" },
+  corrida: { label: "Corrida Maluca", hint: "Três voltas na Ilha dos Tombos!" },
+  carros: { label: "Corrida de Carros", hint: "Três voltas no Autódromo Bobão!" },
+  motos: { label: "Corrida de Motos", hint: "Três voltas na Serpentina Maluca!" },
+  kart: { label: "Corrida de Karts", hint: "Três voltas no Circuito Chiclete!" },
 };
 
 export const TEAMS = {

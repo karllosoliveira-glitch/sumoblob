@@ -71,6 +71,11 @@
 }
 
 :root {
+  --race-road: oklch(0.54 0.03 200);
+  --race-marking: oklch(0.98 0.02 90);
+  --race-grass: oklch(0.74 0.14 145);
+  --race-speckle: oklch(0.56 0.12 150);
+  --race-pink: oklch(0.72 0.2 355);
   --radius: 0.9rem;
   --ink: oklch(0.24 0.04 60);
   --sky: oklch(0.85 0.09 225);
