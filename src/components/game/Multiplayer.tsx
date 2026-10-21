@@ -126,7 +126,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
     } else if (cur.phase === "countdown" && elapsed > COUNTDOWN_MS) {
       pendingGoal.current = null;
       go({ phase: "fight" });
-    } else if (cur.phase === "fight" && cur.mode === "sumo" && elapsed > 1500) {
+    } else if (cur.phase === "fight" && (cur.mode === "sumo" || cur.mode === "lava") && elapsed > 1500) {
       const alive = all.filter((id) => id === playerId ? !localRef.current.dead : !remote.current.get(id)?.dead);
       if (alive.length <= 1) { const w = alive[0] ?? null; const points = { ...cur.points }; if (w) points[w] = (points[w] ?? 0) + 1; go({ phase: "roundEnd", winner: w, points }); }
     } else if (cur.phase === "fight" && cur.mode === "futebol") {
