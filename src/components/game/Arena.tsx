@@ -1,4 +1,3 @@
-```tsx
 import { Environment, Lightformer, Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
@@ -663,4 +662,3 @@ export function Arena() {
     </group>
   );
 }
-```
