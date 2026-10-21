@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 export type Phase = "lobby" | "vote" | "countdown" | "fight" | "roundEnd" | "final";
-export type Mode = "sumo" | "futebol" | "corrida" | "carros" | "motos" | "kart";
+export type Mode = "sumo" | "futebol" | "corrida" | "carros" | "motos" | "kart" | "lava";
 
 export function isRaceMode(mode: Mode): boolean { return mode === "corrida" || mode === "carros" || mode === "motos" || mode === "kart"; }
 
@@ -36,6 +36,7 @@ export const MODES: Record<Mode, { label: string; hint: string }> = {
   carros: { label: "Corrida de Carros", hint: "Três voltas no Autódromo Bobão!" },
   motos: { label: "Corrida de Motos", hint: "Três voltas na Serpentina Maluca!" },
   kart: { label: "Corrida de Karts", hint: "Três voltas no Circuito Chiclete!" },
+  lava: { label: "Chão de Lava", hint: "A lava sobe! Pule pelas plataformas e seja o último blob vivo." },
 };
 
 export const TEAMS = {
