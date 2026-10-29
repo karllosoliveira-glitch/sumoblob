@@ -249,13 +249,13 @@ function CrowdStand({ z }: { z: number }) {
           >
             <mesh>
               <sphereGeometry args={[0.28, 10, 8]} />
-              <meshStandardMaterial color={colors[i % colors.length]} />
+              <meshStandardMaterial color={colors[i % colors.length] ?? "#ff5d5d"} />
             </mesh>
 
             <mesh position={[0, -0.38, 0]}>
               <capsuleGeometry args={[0.25, 0.45, 4, 8]} />
               <meshStandardMaterial
-                color={colors[(i + 2) % colors.length]}
+                color={colors[(i + 2) % colors.length] ?? "#ffd23f"}
               />
             </mesh>
           </group>
@@ -321,7 +321,7 @@ function Field() {
     <group>
       <mesh position={[0, -0.5, 0]} receiveShadow>
         <boxGeometry args={[W + 4, 1, D + 1]} />
-        <meshStandardMaterial map={soap ?? undefined} roughness={0.15} />
+        <meshStandardMaterial map={soap} roughness={0.15} />
       </mesh>
 
       <mesh position={[0, 0.02, 0]} rotation-x={-Math.PI / 2}>
@@ -526,7 +526,7 @@ function LavaArena() {
                 args={[radius, radius * 0.92, 0.42, 8]}
               />
               <meshStandardMaterial
-                color={["#43d9ff", "#ffcf3f", "#ff70b8", "#62e5a2"][i % 4]}
+                color={["#43d9ff", "#ffcf3f", "#ff70b8", "#62e5a2"][i % 4] ?? "#43d9ff"}
                 roughness={0.55}
               />
             </mesh>
@@ -644,7 +644,7 @@ export function Arena() {
         <>
           <mesh position={[0, -0.5, 0]} receiveShadow>
             <cylinderGeometry args={[ARENA_R, ARENA_R - 0.4, 1, 64]} />
-            <meshStandardMaterial map={sand ?? undefined} />
+            <meshStandardMaterial map={sand} />
           </mesh>
 
           <SumoArenaProps />
