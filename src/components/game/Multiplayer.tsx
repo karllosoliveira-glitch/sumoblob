@@ -121,7 +121,7 @@ export function Multiplayer({ roomCode, name, playerRef, localRef, remote, onRos
         const best = Math.max(...Object.values(count));
         const tied = (Object.keys(count) as Mode[]).filter((mode) => count[mode] === best);
         const mode = tied[Math.floor(Math.random() * tied.length)] ?? "sumo";
-        go({ phase: "countdown", mode, round: 1, winner: null, points: {}, raceResults: undefined, startedAt: now + COUNTDOWN_MS });
+        go({ phase: "countdown", mode, round: 1, winner: null, points: {}, raceResults: [], startedAt: now + COUNTDOWN_MS });
       }
     } else if (cur.phase === "countdown" && elapsed > COUNTDOWN_MS) {
       pendingGoal.current = null;
