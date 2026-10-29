@@ -1,4 +1,3 @@
-```tsx
 import { Sumo } from "../Sumo";
 import type { Mode } from "./match";
 
@@ -210,4 +209,3 @@ export function RaceVehicle({
     </group>
   );
 }
-```
